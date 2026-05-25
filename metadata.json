@@ -1,0 +1,6 @@
+{
+  "name": "Mascota Virtual",
+  "description": "Una mascota virtual interactiva con ciclos de sueño, hambre, evolución dinámica basada en decisiones, personalización y notificaciones inteligentes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
