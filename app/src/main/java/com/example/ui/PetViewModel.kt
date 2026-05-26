@@ -204,6 +204,10 @@ class PetViewModel(
                 delay(10000) // update stats every 10 seconds
                 val current = _petStateLocal.value ?: continue
                 
+                if (current.evolutionStage == "Huevo") {
+                    continue
+                }
+                
                 var hunger = current.hunger
                 var sleep = current.sleep
                 var happiness = current.happiness
@@ -638,6 +642,29 @@ class PetViewModel(
             _petStateLocal.value = newState
             repository.updatePetState(newState)
             repository.insertNotification("✏️ Cambiaste el nombre de tu mascota a: $newName.", "info")
+        }
+    }
+
+    // Hatch egg into a newborn pet
+    fun hatchEgg(hatchName: String, selectedGender: String) {
+        val current = _petStateLocal.value ?: return
+        val finalName = if (hatchName.isNotBlank()) hatchName.trim() else "Mochi"
+        val finalGender = if (selectedGender == "Macho" || selectedGender == "Hembra") selectedGender else "Macho"
+        
+        viewModelScope.launch {
+            val newState = current.copy(
+                name = finalName,
+                gender = finalGender,
+                evolutionStage = "Bebé",
+                hunger = 85f,
+                sleep = 85f,
+                happiness = 85f,
+                lastUpdateTime = System.currentTimeMillis()
+            )
+            _petStateLocal.value = newState
+            repository.updatePetState(newState)
+            repository.insertNotification("🐣 ¡Felicidades! Ha nacido tu mascota virtual Mochi ($finalGender), un tierno Bebé. ¡Cuídalo con mucho amor!", "evolution")
+            sendSystemNotification("🐣 ¡Huevo Eclocionado!", "¡Ha nacido $finalName! Qué emoción.")
         }
     }
 

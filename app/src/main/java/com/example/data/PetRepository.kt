@@ -42,18 +42,19 @@ class PetRepository(private val petDao: PetDao) {
             val currentState = petDao.getPetStateOnce()
             if (currentState == null) {
                 val defaultPet = PetState(
-                    name = "Mochi",
-                    hunger = 80f,
-                    sleep = 85f,
-                    happiness = 80f,
+                    name = "Huevo Mochi",
+                    hunger = 100f,
+                    sleep = 100f,
+                    happiness = 100f,
                     xp = 0,
                     level = 1,
                     coins = 120, // Give them initial capital to shop
-                    evolutionStage = "Bebé",
+                    evolutionStage = "Huevo",
                     evolutionPath = "Normal",
                     skinColor = "Lilac",
                     equippedAccessory = "none",
                     isSleeping = false,
+                    gender = "Ninguno",
                     lastUpdateTime = System.currentTimeMillis()
                 )
                 petDao.updatePetState(defaultPet)

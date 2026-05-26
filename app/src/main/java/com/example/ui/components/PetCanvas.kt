@@ -116,48 +116,100 @@ fun PetCanvas(
             drawShadow(centerX, centerY + petRadius, petRadius, breatheScaleX)
 
             // Draw primary body blob
+            val isEgg = petState.evolutionStage == "Huevo"
             val bodyPath = Path().apply {
-                val topY = centerY - petRadius * 1.05f
-                val bottomY = centerY + petRadius
-                val leftX = centerX - petRadius * 1.02f
-                val rightX = centerX + petRadius * 1.02f
-                
-                // Rounded bubbly blob
-                moveTo(centerX, topY)
-                cubicTo(rightX, topY, rightX, bottomY, centerX, bottomY)
-                cubicTo(leftX, bottomY, leftX, topY, centerX, topY)
+                if (isEgg) {
+                    val topY = centerY - petRadius * 1.15f
+                    val bottomY = centerY + petRadius * 0.95f
+                    val leftX = centerX - petRadius * 0.82f
+                    val rightX = centerX + petRadius * 0.82f
+                    
+                    moveTo(centerX, topY)
+                    // Narrower at the top, wider at the bottom to form a cute egg shape
+                    cubicTo(centerX + petRadius * 0.45f, topY, rightX, centerY - petRadius * 0.2f, rightX, centerY + petRadius * 0.2f)
+                    cubicTo(rightX, centerY + petRadius * 0.7f, centerX + petRadius * 0.6f, bottomY, centerX, bottomY)
+                    cubicTo(centerX - petRadius * 0.6f, bottomY, leftX, centerY + petRadius * 0.7f, leftX, centerY + petRadius * 0.2f)
+                    cubicTo(leftX, centerY - petRadius * 0.2f, centerX - petRadius * 0.45f, topY, centerX, topY)
+                } else {
+                    val topY = centerY - petRadius * 1.05f
+                    val bottomY = centerY + petRadius
+                    val leftX = centerX - petRadius * 1.02f
+                    val rightX = centerX + petRadius * 1.02f
+                    
+                    // Rounded bubbly blob
+                    moveTo(centerX, topY)
+                    cubicTo(rightX, topY, rightX, bottomY, centerX, bottomY)
+                    cubicTo(leftX, bottomY, leftX, topY, centerX, topY)
+                }
             }
 
             // Draw body base
             drawPath(
                 path = bodyPath,
                 brush = Brush.radialGradient(
-                    colors = listOf(baseColor, shadowColor),
-                    center = Offset(centerX - 15f, centerY - 15f),
-                    radius = petRadius * 1.5f
+                    colors = if (isEgg) listOf(Color(0xFF81D4FA), Color(0xFF0288D1)) else listOf(baseColor, shadowColor),
+                    center = Offset(centerX - 12f, centerY - 20f),
+                    radius = petRadius * 1.4f
                 )
             )
 
-            // Draw specialized evolution physical traits
-            drawEvolutionFeatures(petState.evolutionStage, petState.evolutionPath, centerX, centerY, petRadius)
+            if (isEgg) {
+                // Draw cute colorful polka dots on the egg
+                val spotColor = Color(0xFFFFCC80) // Pastel orange
+                drawCircle(color = spotColor, radius = petRadius * 0.14f, center = Offset(centerX - petRadius * 0.35f, centerY - petRadius * 0.2f))
+                drawCircle(color = Color(0xFFA5D6A7), radius = petRadius * 0.12f, center = Offset(centerX + petRadius * 0.32f, centerY + petRadius * 0.1f))
+                drawCircle(color = Color(0xFFE1BEE7), radius = petRadius * 0.15f, center = Offset(centerX, centerY - petRadius * 0.5f))
+                drawCircle(color = spotColor, radius = petRadius * 0.1f, center = Offset(centerX - petRadius * 0.15f, centerY + petRadius * 0.4f))
 
-            // Draw facial features based on status modes (Sleeping, Sad, Hungry, Tired, Happy, Healthy)
-            drawFace(
-                petState = petState,
-                activeInteraction = activeInteraction,
-                centerX = centerX,
-                centerY = centerY,
-                petRadius = petRadius,
-                blinkFactor = eyeBlinkTimer
-            )
+                // Cute sleeping anime eyes on the egg ( - . - )
+                val eyeL = Offset(centerX - petRadius * 0.25f, centerY + petRadius * 0.12f)
+                val eyeR = Offset(centerX + petRadius * 0.25f, centerY + petRadius * 0.12f)
+                val eyeSize = petRadius * 0.08f
+                
+                drawArc(
+                    color = Color(0xFF1B5E20), // Dark forest green lines on sky blue egg
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(eyeL.x - eyeSize, eyeL.y - eyeSize * 0.5f),
+                    size = Size(eyeSize * 2f, eyeSize),
+                    style = Stroke(width = 5f, cap = StrokeCap.Round)
+                )
+                drawArc(
+                    color = Color(0xFF1B5E20),
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(eyeR.x - eyeSize, eyeR.y - eyeSize * 0.5f),
+                    size = Size(eyeSize * 2f, eyeSize),
+                    style = Stroke(width = 5f, cap = StrokeCap.Round)
+                )
+                
+                // Cute tiny mouth / blush on the egg
+                drawCircle(color = Color(0x66FF8A80), radius = petRadius * 0.08f, center = Offset(centerX - petRadius * 0.35f, centerY + petRadius * 0.24f))
+                drawCircle(color = Color(0x66FF8A80), radius = petRadius * 0.08f, center = Offset(centerX + petRadius * 0.35f, centerY + petRadius * 0.24f))
+            } else {
+                // Draw specialized evolution physical traits
+                drawEvolutionFeatures(petState.evolutionStage, petState.evolutionPath, centerX, centerY, petRadius)
 
-            // Draw secondary accessories (Party Hat, Sunglasses, Bowtie, Crown, Wizard Hat)
-            drawAccessories(
-                accessoryId = petState.equippedAccessory,
-                centerX = centerX,
-                centerY = centerY,
-                petRadius = petRadius
-            )
+                // Draw facial features based on status modes (Sleeping, Sad, Hungry, Tired, Happy, Healthy)
+                drawFace(
+                    petState = petState,
+                    activeInteraction = activeInteraction,
+                    centerX = centerX,
+                    centerY = centerY,
+                    petRadius = petRadius,
+                    blinkFactor = eyeBlinkTimer
+                )
+
+                // Draw secondary accessories (Party Hat, Sunglasses, Bowtie, Crown, Wizard Hat)
+                drawAccessories(
+                    accessoryId = petState.equippedAccessory,
+                    centerX = centerX,
+                    centerY = centerY,
+                    petRadius = petRadius
+                )
+            }
         }
 
         // Draw interaction bubbles, floating hearts or eating crumbs that aren't scaled with breathing

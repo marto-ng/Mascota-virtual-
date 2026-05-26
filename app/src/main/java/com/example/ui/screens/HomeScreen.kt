@@ -65,11 +65,12 @@ fun HomeScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
-            // High-fidelity dynamic bottom navigation bar with material pill indicators
-            NavigationBar(
-                containerColor = Color(0xFF1E293B), // Slate 800
-                tonalElevation = 8.dp
-            ) {
+            if (petState?.evolutionStage != "Huevo") {
+                // High-fidelity dynamic bottom navigation bar with material pill indicators
+                NavigationBar(
+                    containerColor = Color(0xFF1E293B), // Slate 800
+                    tonalElevation = 8.dp
+                ) {
                 NavigationBarItem(
                     selected = activeScreen == 0,
                     onClick = { viewModel.changeScreen(0) },
@@ -140,6 +141,7 @@ fun HomeScreen(
                     modifier = Modifier.testTag("nav_alerts")
                 )
             }
+            }
         }
     ) { innerPadding ->
         Box(
@@ -149,41 +151,48 @@ fun HomeScreen(
                 .padding(innerPadding)
         ) {
             petState?.let { state ->
-                AnimatedContent(
-                    targetState = activeScreen,
-                    transitionSpec = {
-                        fadeIn() togetherWith fadeOut()
-                    },
-                    label = "ScreenNavController"
-                ) { screenId ->
-                    when (screenId) {
-                        0 -> DashboardView(
-                            state = state,
-                            activeInteraction = activeInteraction,
-                            onPetAction = { viewModel.strokePet() },
-                            onFeedAction = { viewModel.feedPet() },
-                            onSleepAction = { viewModel.toggleSleep() },
-                            onCleanAction = { viewModel.cleanPet() },
-                            onRenameClick = {
-                                inputName = state.name
-                                showRenameDialog = true
-                            }
-                        )
-                        1 -> ShopView(
-                            state = state,
-                            shopItems = shopItems,
-                            onBuyItem = { viewModel.purchaseItem(it) },
-                            onEquipItem = { viewModel.equipItem(it) },
-                            onUnequipAcc = { viewModel.unequipAccessory() }
-                        )
-                        2 -> MiniGameView(
-                            viewModel = viewModel
-                        )
-                        3 -> NotificationHistoryView(
-                            notifications = notifications,
-                            onClearHistory = { viewModel.clearLogs() },
-                            onMarkAllRead = { viewModel.markAllRead() }
-                        )
+                if (state.evolutionStage == "Huevo") {
+                    HatchingScreen(
+                        state = state,
+                        onHatch = { name, gender -> viewModel.hatchEgg(name, gender) }
+                    )
+                } else {
+                    AnimatedContent(
+                        targetState = activeScreen,
+                        transitionSpec = {
+                            fadeIn() togetherWith fadeOut()
+                        },
+                        label = "ScreenNavController"
+                    ) { screenId ->
+                        when (screenId) {
+                            0 -> DashboardView(
+                                state = state,
+                                activeInteraction = activeInteraction,
+                                onPetAction = { viewModel.strokePet() },
+                                onFeedAction = { viewModel.feedPet() },
+                                onSleepAction = { viewModel.toggleSleep() },
+                                onCleanAction = { viewModel.cleanPet() },
+                                onRenameClick = {
+                                    inputName = state.name
+                                    showRenameDialog = true
+                                }
+                            )
+                            1 -> ShopView(
+                                state = state,
+                                shopItems = shopItems,
+                                onBuyItem = { viewModel.purchaseItem(it) },
+                                onEquipItem = { viewModel.equipItem(it) },
+                                onUnequipAcc = { viewModel.unequipAccessory() }
+                            )
+                            2 -> MiniGameView(
+                                viewModel = viewModel
+                            )
+                            3 -> NotificationHistoryView(
+                                notifications = notifications,
+                                onClearHistory = { viewModel.clearLogs() },
+                                onMarkAllRead = { viewModel.markAllRead() }
+                            )
+                        }
                     }
                 }
 
@@ -310,7 +319,7 @@ fun DashboardView(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = state.name,
+                                    text = state.name + if (state.gender == "Macho") " ♂️" else if (state.gender == "Hembra") " ♀️" else "",
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold
@@ -1470,6 +1479,282 @@ fun EvolutionPathCard(
                     color = Color(0xFF94A3B8),
                     lineHeight = 14.sp
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun HatchingScreen(
+    state: PetState,
+    onHatch: (String, String) -> Unit
+) {
+    var petName by remember { mutableStateOf("") }
+    var selectedGender by remember { mutableStateOf("Ninguno") } // "Ninguno", "Macho", "Hembra"
+    var tapCounter by remember { mutableStateOf(5) }
+    var incubationActive by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top,
+        contentPadding = PaddingValues(bottom = 32.dp)
+    ) {
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "¡NUEVO HUEVO DETECTADO! 🐣",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color(0xFFFFD54F),
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "Configura a tu Mochi y toca el huevo para incubarlo.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF94A3B8),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+            )
+        }
+
+        // Egg screen display container
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1.3f)
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(Color(0xFF0F172A))
+                    .border(BorderStroke(4.dp, Color(0xFF334155)), RoundedCornerShape(32.dp))
+                    .padding(8.dp)
+                    .clickable(enabled = incubationActive) {
+                        if (tapCounter > 1) {
+                            tapCounter--
+                        } else {
+                            tapCounter = 0
+                            onHatch(petName, selectedGender)
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0x1F80DEEA),
+                                    Color(0x05000000)
+                                )
+                            )
+                        )
+                ) {
+                    PetCanvas(
+                        petState = state,
+                        activeInteraction = if (incubationActive) "cleaning" else "none",
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Small indicator overlays
+                    Surface(
+                        color = Color(0xCC1E293B),
+                        border = BorderStroke(1.dp, Color(0x33B180FF)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 12.dp)
+                    ) {
+                        Text(
+                            text = if (!incubationActive) "💤 Huevo durmiendo..." else "🥚 ¡Toca el huevo! Taps restantes: $tapCounter",
+                            fontSize = 12.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B).copy(alpha = 0.85f)),
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(1.dp, Color(0xFF475569)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Identidad de Mochi 📝",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    )
+
+                    // Pet Name Input Field
+                    OutlinedTextField(
+                        value = petName,
+                        onValueChange = {
+                            if (it.length <= 16) {
+                                petName = it
+                                errorMessage = ""
+                            }
+                        },
+                        label = { Text("Nombre de la mascota") },
+                        placeholder = { Text("Ej: Mochi, Chobi, etc.") },
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedContainerColor = Color(0x1A000000),
+                            unfocusedContainerColor = Color(0x1A000000),
+                            focusedIndicatorColor = Color(0xFFB082FF),
+                            focusedLabelColor = Color(0xFFB082FF)
+                        ),
+                        modifier = Modifier.fillMaxWidth().testTag("hatch_name_input")
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Gender Selector Title
+                    Text(
+                        "Selecciona el Sexo ♂️ ♀️",
+                        fontSize = 13.sp,
+                        color = Color(0xFFCBD5E1),
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+
+                    // Gender Selection Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Macho Button
+                        val activeM = selectedGender == "Macho"
+                        Button(
+                            onClick = { selectedGender = "Macho"; errorMessage = "" },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (activeM) Color(0x3340C4FF) else Color(0xFF334155),
+                                contentColor = if (activeM) Color(0xFF40C4FF) else Color(0xFF94A3B8)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                width = if (activeM) 2.dp else 1.dp,
+                                color = if (activeM) Color(0xFF40C4FF) else Color(0xFF475569)
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .minimumInteractiveComponentSize()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("♂️ Macho", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                        }
+
+                        // Hembra Button
+                        val activeH = selectedGender == "Hembra"
+                        Button(
+                            onClick = { selectedGender = "Hembra"; errorMessage = "" },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (activeH) Color(0x33FF4081) else Color(0xFF334155),
+                                contentColor = if (activeH) Color(0xFFFF4081) else Color(0xFF94A3B8)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                width = if (activeH) 2.dp else 1.dp,
+                                color = if (activeH) Color(0xFFFF4081) else Color(0xFF475569)
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .minimumInteractiveComponentSize()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("♀️ Hembra", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                        }
+                    }
+
+                    if (errorMessage.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = errorMessage,
+                            color = Color(0xFFFF5252),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Incubator activator / Launch button
+                    if (!incubationActive) {
+                        Button(
+                            onClick = {
+                                if (petName.isBlank()) {
+                                    errorMessage = "⚠️ Por favor, ingresa un nombre para tu Mochi."
+                                } else if (selectedGender == "Ninguno") {
+                                    errorMessage = "⚠️ Por favor, selecciona el sexo (Macho o Hembra)."
+                                } else {
+                                    incubationActive = true
+                                    errorMessage = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB082FF)),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .testTag("activate_incubator")
+                        ) {
+                            Text(
+                                "Activar Incubadora 🔌",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                        }
+                    } else {
+                        // Tapping instruction
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "⚡ ¡La incubadora está activa! ⚡",
+                                color = Color(0xFFFFD54F),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                "Toca el huevo arriba para abrir el cascarón.",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            // Simple manual Hatch button just in case tapping is unpractical in some environments
+                            TextButton(
+                                onClick = { onHatch(petName, selectedGender) },
+                                modifier = Modifier.minimumInteractiveComponentSize()
+                            ) {
+                                Text("Forzar Eclosión 🐣", color = Color(0xFFB082FF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

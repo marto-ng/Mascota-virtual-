@@ -18,5 +18,6 @@ data class PetState(
     val skinColor: String = "Lilac", // Lilac, Sky, Mint, Peach, Gold
     val equippedAccessory: String = "none", // none, party_hat, sunglasses, bowtie, crown, wizard_hat
     val isSleeping: Boolean = false,
+    val gender: String = "Ninguno", // Ninguno, Macho, Hembra
     val lastUpdateTime: Long = System.currentTimeMillis()
 )
