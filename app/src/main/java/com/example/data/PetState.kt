@@ -10,6 +10,9 @@ data class PetState(
     val hunger: Float = 80f, // 0 to 100 (100 is full, 0 is starving)
     val sleep: Float = 80f,  // 0 to 100 (100 is fully rested, 0 is exhausted)
     val happiness: Float = 80f, // 0 to 100 (100 is joyful, 0 is depressed)
+    val health: Float = 80f, // 0 to 100
+    val hygiene: Float = 80f, // 0 to 100
+    val currentEmotion: String = "Normal", // Normal, Enojo, Aburrimiento, Miedo, Vergüenza, Timidez, Cariño/amor, Celos, Soledad, Emoción, Confusión, Jugando, Bailando, Cantando, Durmiendo profundamente, Enfermo, Pensando, Explorando, Esperando al jugador
     val xp: Int = 0,
     val level: Int = 1,
     val coins: Int = 150, // Starts with some coins to let user spend in the shop

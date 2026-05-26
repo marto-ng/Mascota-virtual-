@@ -6,7 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -174,6 +176,7 @@ fun HomeScreen(
                     ) { screenId ->
                         when (screenId) {
                             0 -> DashboardView(
+                                viewModel = viewModel,
                                 state = state,
                                 activeInteraction = activeInteraction,
                                 onPetAction = { viewModel.strokePet() },
@@ -296,6 +299,7 @@ fun HomeScreen(
 
 @Composable
 fun DashboardView(
+    viewModel: PetViewModel,
     state: PetState,
     activeInteraction: String,
     onPetAction: () -> Unit,
@@ -505,9 +509,32 @@ fun DashboardView(
                             // Status Mood Overlay Pill (Top center of display)
                             val moodLabel = when {
                                 state.isSleeping -> "Zzz... Durmiendo 💤"
-                                state.hunger < 25f -> "¡Tiene Hambre! 🍎😫"
+                                state.currentEmotion == "Storm" -> "¡Tormenta Emocional! 😵🔥"
+                                state.health < 30f || state.currentEmotion == "Enfermo" -> "Enfermo, ¡dale medicina! 🤒💊"
+                                state.hunger < 25f -> "¡Tiene Hambre! 🍔😫"
                                 state.sleep < 25f -> "¡Exhausto! Necesita dormir 😴"
+                                state.hygiene < 25f -> "Está Mugroso... ¡Báñalo! 🛁💦"
                                 state.happiness < 40f -> "Está Triste... ¡Dale mimos! 😢"
+                                state.currentEmotion != "Normal" -> "Modo: ${state.currentEmotion} ${when(state.currentEmotion){
+                                    "Enojo" -> "😡"
+                                    "Aburrimiento" -> "😑"
+                                    "Miedo" -> "😨"
+                                    "Vergüenza" -> "😳"
+                                    "Timidez" -> "🫣"
+                                    "Cariño/amor" -> "🥰"
+                                    "Celos" -> "😒"
+                                    "Soledad" -> "🥺"
+                                    "Emoción" -> "🤩"
+                                    "Confusión" -> "😵"
+                                    "Jugando" -> "🎮"
+                                    "Bailando" -> "💃"
+                                    "Cantando" -> "🎤"
+                                    "Durmiendo profundamente" -> "💤"
+                                    "Pensando" -> "🤔"
+                                    "Explorando" -> "🔍"
+                                    "Esperando al jugador" -> "👀"
+                                    else -> "✨"
+                                }}"
                                 state.happiness > 75f -> "¡Súper Alegre y Sano! 🥰🌟"
                                 else -> "Tranquilo y Feliz 🙂🌸"
                             }
@@ -533,7 +560,7 @@ fun DashboardView(
             }
         }
 
-        // Live stats sliders (Hambre, Sueño, Felicidad)
+        // Live stats sliders (Hambre, Sueño, Felicidad, Salud, Higiene)
         item {
             Spacer(modifier = Modifier.height(18.dp))
             Card(
@@ -544,7 +571,7 @@ fun DashboardView(
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Estado de Necesidad",
+                        "Estado de Necesidad y Salud",
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         fontSize = 14.sp
@@ -552,7 +579,7 @@ fun DashboardView(
                     
                     // Hunger item
                     StatMeterRow(
-                        label = "Nutrición (Hambre)",
+                        label = "Nutrición (Hambre) 🍔",
                         value = state.hunger,
                         activeColor = Color(0xFFFF7043),
                         icon = Icons.Default.ShoppingCart
@@ -560,7 +587,7 @@ fun DashboardView(
 
                     // Sleep / Energy item
                     StatMeterRow(
-                        label = "Energía (Sueño)",
+                        label = "Energía (Sueño) 😴",
                         value = state.sleep,
                         activeColor = Color(0xFF29B6F6),
                         icon = Icons.Default.Star
@@ -568,10 +595,26 @@ fun DashboardView(
 
                     // Happiness / Core Mood
                     StatMeterRow(
-                        label = "Felicidad",
+                        label = "Felicidad (Ánimo) 😄",
                         value = state.happiness,
-                        activeColor = Color(0xFF66BB6A),
+                        activeColor = Color(0xFFFFCA28),
                         icon = Icons.Default.Favorite
+                    )
+
+                    // Health / Salud
+                    StatMeterRow(
+                        label = "Salud Corporal ❤️",
+                        value = state.health,
+                        activeColor = Color(0xFFEF5350),
+                        icon = Icons.Default.FavoriteBorder
+                    )
+
+                    // Hygiene / Higiene
+                    StatMeterRow(
+                        label = "Higiene y Limpieza 🛁",
+                        value = state.hygiene,
+                        activeColor = Color(0xFF26A69A),
+                        icon = Icons.Default.Refresh
                     )
                 }
             }
@@ -661,6 +704,109 @@ fun DashboardView(
                         .weight(1f)
                         .testTag("action_clean")
                 )
+            }
+        }
+
+        // SERVIDOR CLOUD EXTERNO ☁️
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
+            val syncStatus by viewModel.syncStatus.collectAsStateWithLifecycle()
+            val syncTelemetry by viewModel.syncTelemetry.collectAsStateWithLifecycle()
+            val serverUrlInput by viewModel.serverUrlInput.collectAsStateWithLifecycle()
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B).copy(alpha = 0.85f)),
+                shape = RoundedCornerShape(24.dp),
+                border = BorderStroke(1.dp, Color(0xFF475569)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color(0xFF60A5FA),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Servidor Cloud Externo",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
+                        
+                        // Pulse Status Indicator
+                        Surface(
+                            color = when {
+                                syncStatus == "¡Sincronizado!" || syncStatus.contains("Listo") -> Color(0x334ADE80)
+                                syncStatus.contains("Error") -> Color(0x33F87171)
+                                else -> Color(0x3360A5FA)
+                            },
+                            shape = CircleShape
+                        ) {
+                            Text(
+                                text = syncStatus,
+                                fontSize = 10.sp,
+                                color = when {
+                                    syncStatus == "¡Sincronizado!" || syncStatus.contains("Listo") -> Color(0xFF4ADE80)
+                                    syncStatus.contains("Error") -> Color(0xFFF87171)
+                                    else -> Color(0xFF60A5FA)
+                                },
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        "Respalda la evolución, accesorios y monedas de tu mascota en un servidor remoto de forma segura.",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 11.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = { viewModel.uploadMochiToCloud() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .minimumInteractiveComponentSize()
+                                .testTag("btn_upload_cloud")
+                        ) {
+                            Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Guardar nube 📤", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { viewModel.downloadMochiFromCloud() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .minimumInteractiveComponentSize()
+                                .testTag("btn_download_cloud")
+                        ) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("descargar datos de la nube 📥", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
     }
@@ -783,7 +929,7 @@ fun ShopView(
     onEquipItem: (ShopItem) -> Unit,
     onUnequipAcc: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0: Skins/Colores, 1: Accesorios
+    var selectedTab by remember { mutableStateOf(0) } // 0: Skins/Colores, 1: Accesorios, 2: Servicios
 
     Column(
         modifier = Modifier
@@ -838,7 +984,7 @@ fun ShopView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Dual item tabs
+        // Triple item tabs
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color(0xFF1E293B),
@@ -854,7 +1000,7 @@ fun ShopView(
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
-                text = { Text("Pieles / Colores", fontSize = 13.sp, fontWeight = FontWeight.Bold) },
+                text = { Text("Pieles / Colores", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                 unselectedContentColor = Color(0xFF94A3B8),
                 selectedContentColor = Color(0xFFB082FF),
                 modifier = Modifier.minimumInteractiveComponentSize()
@@ -862,7 +1008,15 @@ fun ShopView(
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
-                text = { Text("Accesorios 🧢", fontSize = 13.sp, fontWeight = FontWeight.Bold) },
+                text = { Text("Accesorios 🧢", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                unselectedContentColor = Color(0xFF94A3B8),
+                selectedContentColor = Color(0xFFB082FF),
+                modifier = Modifier.minimumInteractiveComponentSize()
+            )
+            Tab(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                text = { Text("Servicios 🏥", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                 unselectedContentColor = Color(0xFF94A3B8),
                 selectedContentColor = Color(0xFFB082FF),
                 modifier = Modifier.minimumInteractiveComponentSize()
@@ -892,10 +1046,10 @@ fun ShopView(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.weight(1f)
         ) {
-            val categorisedItems = if (selectedTab == 0) {
-                shopItems.filter { it.type == "color" }
-            } else {
-                shopItems.filter { it.type == "accessory" }
+            val categorisedItems = when (selectedTab) {
+                0 -> shopItems.filter { it.type == "color" }
+                1 -> shopItems.filter { it.type == "accessory" }
+                else -> listOf(ShopItem("service_medical", isUnlocked = true, "service", "Servicio Médico 🏥", 15))
             }
 
             if (categorisedItems.isEmpty()) {
@@ -916,9 +1070,11 @@ fun ShopView(
                     val isEquipped = if (item.type == "color") {
                         val skinColorName = item.itemId.removePrefix("color_")
                         state.skinColor.lowercase() == skinColorName.lowercase()
-                    } else {
+                    } else if (item.type == "accessory") {
                         val accName = item.itemId.removePrefix("acc_")
                         state.equippedAccessory.lowercase() == accName.lowercase()
+                    } else {
+                        false
                     }
 
                     ShopItemRow(
@@ -963,7 +1119,7 @@ fun ShopItemRow(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Circular icon representing the color swatch or accessory
+                // Circular icon representing the color swatch or accessory or service
                 Surface(
                     color = getPreviewSwatchColor(item.itemId),
                     shape = CircleShape,
@@ -973,6 +1129,8 @@ fun ShopItemRow(
                     Box(contentAlignment = Alignment.Center) {
                         if (item.type == "accessory") {
                             Text(getAccessoryEmoji(item.itemId), fontSize = 18.sp)
+                        } else if (item.type == "service") {
+                            Text("💊", fontSize = 18.sp)
                         } else {
                             Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
                         }
@@ -989,68 +1147,92 @@ fun ShopItemRow(
                         color = Color.White
                     )
                     Text(
-                        text = if (item.isUnlocked) "Desbloqueado ✓" else "Precio de compra",
+                        text = if (item.type == "service") "Restaura salud al 100% 🏥" else if (item.isUnlocked) "Desbloqueado ✓" else "Precio de compra",
                         fontSize = 11.sp,
-                        color = if (item.isUnlocked) Color(0xFF66BB6A) else Color(0xFF94A3B8)
+                        color = if (item.type == "service") Color(0xFFFFD54F) else if (item.isUnlocked) Color(0xFF66BB6A) else Color(0xFF94A3B8)
                     )
                 }
             }
 
             // Right interact state button
             Box {
-                when {
-                    isEquipped -> {
-                        Surface(
-                            color = Color(0xFF334155),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                "Equipado 👑",
-                                color = Color(0xFFB082FF),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
-                        }
+                if (item.type == "service") {
+                    val canAfford = currentCoins >= item.price
+                    Button(
+                        onClick = onBuy,
+                        enabled = canAfford,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEF5350),
+                            disabledContainerColor = Color(0xFF334155)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .testTag("buy_medical_service")
+                    ) {
+                        Text(
+                            "Comprar/Usar 💊",
+                            fontSize = 12.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                    item.isUnlocked -> {
-                        Button(
-                            onClick = onEquip,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.minimumInteractiveComponentSize().testTag("equip_" + item.itemId)
-                        ) {
-                            Text("Equipar", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                } else {
+                    when {
+                        isEquipped -> {
+                            Surface(
+                                color = Color(0xFF334155),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    "Equipado 👑",
+                                    color = Color(0xFFB082FF),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
                         }
-                    }
-                    else -> {
-                        // Needs unlock buying
-                        val canAfford = currentCoins >= item.price
-                        Button(
-                            onClick = onBuy,
-                            enabled = canAfford,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFFD54F),
-                                disabledContainerColor = Color(0xFF334155)
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.minimumInteractiveComponentSize().testTag("buy_" + item.itemId)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                tint = if (canAfford) Color(0xFF5D4037) else Color.Gray,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                "${item.price} g",
-                                fontSize = 12.sp,
-                                color = if (canAfford) Color(0xFF5D4037) else Color.Gray,
-                                fontWeight = FontWeight.Bold
-                            )
+                        item.isUnlocked -> {
+                            Button(
+                                onClick = onEquip,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.minimumInteractiveComponentSize().testTag("equip_" + item.itemId)
+                            ) {
+                                Text("Equipar", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        else -> {
+                            // Needs unlock buying
+                            val canAfford = currentCoins >= item.price
+                            Button(
+                                onClick = onBuy,
+                                enabled = canAfford,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFD54F),
+                                    disabledContainerColor = Color(0xFF334155)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.minimumInteractiveComponentSize().testTag("buy_" + item.itemId)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = if (canAfford) Color(0xFF5D4037) else Color.Gray,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "${item.price} g",
+                                    fontSize = 12.sp,
+                                    color = if (canAfford) Color(0xFF5D4037) else Color.Gray,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -1066,6 +1248,7 @@ private fun getPreviewSwatchColor(id: String): Color {
         "color_mint" -> Color(0xFF7FE6B2)
         "color_peach" -> Color(0xFFFC9E8D)
         "color_gold" -> Color(0xFFFFD54F)
+        "service_medical" -> Color(0xFFEF5350)
         else -> Color(0xFF5A6E85)
     }
 }

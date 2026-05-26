@@ -89,9 +89,55 @@ fun PetCanvas(
         label = "FloatingParticles"
     )
 
-    // Determine color schemes based on equipped skins and active evolution path
-    val (baseColor, shadowColor) = remember(petState.skinColor, petState.evolutionPath) {
-        getSkinColors(petState.skinColor, petState.evolutionPath)
+    // Interactive custom animations: dancing, singing, exploring, shivering
+    val danceRotate by infiniteTransition.animateFloat(
+        initialValue = -12f,
+        targetValue = 12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "DanceRotate"
+    )
+
+    val singPulse by infiniteTransition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(350, easing = FastOutSlowInWithBounce),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "SingPulse"
+    )
+
+    val exploreOffset by infiniteTransition.animateFloat(
+        initialValue = -35f,
+        targetValue = 35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = EasyInOut),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ExploreOffset"
+    )
+
+    val shiverOffset by infiniteTransition.animateFloat(
+        initialValue = -3f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(60, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ShiverOffset"
+    )
+
+    // Determine color schemes based on equipped skins, active evolution path, and sickness
+    val (baseColor, shadowColor) = remember(petState.skinColor, petState.evolutionPath, petState.currentEmotion) {
+        val colors = getSkinColors(petState.skinColor, petState.evolutionPath)
+        if (petState.currentEmotion == "Enfermo") {
+            Pair(Color(0xFF81C784), Color(0xFF33691E)) // Unhealthy Sick Greenish Skin Look
+        } else {
+            colors
+        }
     }
 
     Canvas(
@@ -109,6 +155,30 @@ fun PetCanvas(
         withTransform({
             // Apply bounce translation
             translate(top = bounceOffset)
+
+            // Apply specific interactive state physical animation overlays
+            val emo = petState.currentEmotion
+            when (emo) {
+                "Bailando" -> {
+                    rotate(danceRotate, pivot = Offset(centerX, centerY + petRadius))
+                }
+                "Cantando" -> {
+                    scale(scaleX = singPulse, scaleY = singPulse, pivot = Offset(centerX, centerY + petRadius))
+                }
+                "Explorando" -> {
+                    translate(left = exploreOffset)
+                }
+                "Enfermo" -> {
+                    translate(left = shiverOffset, top = shiverOffset)
+                }
+                "Pensando" -> {
+                    rotate(-5f, pivot = Offset(centerX, centerY + petRadius))
+                }
+                "Esperando al jugador" -> {
+                    translate(top = sin(floatPercent * 2 * PI.toFloat()) * 4f)
+                }
+            }
+
             // Apply breathing scale from the center of the pet base
             scale(scaleX = breatheScaleX, scaleY = breatheScaleY, pivot = Offset(centerX, centerY + petRadius))
         }) {
@@ -403,10 +473,12 @@ private fun DrawScope.drawFace(
     petRadius: Float,
     blinkFactor: Float
 ) {
-    val isSleeping = petState.isSleeping
-    val isSad = petState.happiness < 35f && activeInteraction != "petting"
-    val isTired = petState.sleep < 30f && !isSleeping
-    val isHungry = petState.hunger < 30f
+    val isSleeping = petState.isSleeping || petState.currentEmotion == "Durmiendo profundamente"
+    val isSad = (petState.happiness < 35f && activeInteraction != "petting") || petState.currentEmotion == "Soledad" || petState.currentEmotion == "Tristeza"
+    val isTired = (petState.sleep < 30f && !isSleeping) || petState.currentEmotion == "Sueño"
+    val isHungry = petState.hunger < 30f || petState.currentEmotion == "Hambre"
+
+    val emotion = petState.currentEmotion
 
     val eyeOffsetOuterX = petRadius * 0.38f
     val eyeOffsetY = petRadius * 0.1f
@@ -438,22 +510,114 @@ private fun DrawScope.drawFace(
                 style = Stroke(width = 6f, cap = StrokeCap.Round)
             )
         }
+        emotion == "Cariño/amor" -> {
+            // Heart eyes 🥰
+            drawHeart(eyeL.x, eyeL.y - 4f, eyeR_size * 1.3f, Color(0xFFFF4081))
+            drawHeart(eyeR.x, eyeR.y - 4f, eyeR_size * 1.3f, Color(0xFFFF4081))
+        }
+        emotion == "Emoción" || emotion == "Bailando" -> {
+            // Star eyes or star wink 🤩
+            drawStar(eyeL.x, eyeL.y, eyeR_size * 1.4f, Color(0xFFFFD54F))
+            drawStar(eyeR.x, eyeR.y, eyeR_size * 1.4f, Color(0xFFFFD54F))
+        }
+        emotion == "Confusión" -> {
+            // Spiral dizzy eyes 😵
+            for (r in 1..3) {
+                drawCircle(
+                    color = Color(0xFF212121),
+                    radius = (eyeR_size * r * 0.35f),
+                    center = eyeL,
+                    style = Stroke(width = 3f)
+                )
+                drawCircle(
+                    color = Color(0xFF212121),
+                    radius = (eyeR_size * r * 0.35f),
+                    center = eyeR,
+                    style = Stroke(width = 3f)
+                )
+            }
+        }
+        emotion == "Enojo" -> {
+            // Angry slanting eyes slanting inward 😡
+            drawLine(
+                color = Color(0xFF212121),
+                start = Offset(eyeL.x - eyeR_size, eyeL.y - 5f),
+                end = Offset(eyeL.x + eyeR_size, eyeL.y + 10f),
+                strokeWidth = 6f,
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = Color(0xFF212121),
+                start = Offset(eyeR.x + eyeR_size, eyeR.y - 5f),
+                end = Offset(eyeR.x - eyeR_size, eyeR.y + 10f),
+                strokeWidth = 6f,
+                cap = StrokeCap.Round
+            )
+        }
+        emotion == "Aburrimiento" || emotion == "Celos" -> {
+            // Flat straight slot eyes 😑😒
+            drawLine(
+                color = Color(0xFF212121),
+                start = Offset(eyeL.x - eyeR_size, eyeL.y),
+                end = Offset(eyeL.x + eyeR_size, eyeL.y),
+                strokeWidth = 6f,
+                cap = StrokeCap.Round
+            )
+            val rightEyeOffset = if (emotion == "Celos") 4f else 0f
+            drawLine(
+                color = Color(0xFF212121),
+                start = Offset(eyeR.x - eyeR_size, eyeR.y - rightEyeOffset),
+                end = Offset(eyeR.x + eyeR_size, eyeR.y + rightEyeOffset),
+                strokeWidth = 6f,
+                cap = StrokeCap.Round
+            )
+        }
+        emotion == "Miedo" -> {
+            // Small trembling pupils 😨
+            drawCircle(color = Color(0xFF212121), radius = eyeR_size * 0.6f, center = eyeL)
+            drawCircle(color = Color(0xFF212121), radius = eyeR_size * 0.6f, center = eyeR)
+            drawCircle(color = Color.White, radius = eyeR_size * 0.2f, center = Offset(eyeL.x - 1f, eyeL.y - 1f))
+            drawCircle(color = Color.White, radius = eyeR_size * 0.2f, center = Offset(eyeR.x - 1f, eyeR.y - 1f))
+        }
+        emotion == "Timidez" || emotion == "Vergüenza" -> {
+            // Peeking sideways curved eyes 🫣😳
+            drawArc(
+                color = Color(0xFF212121),
+                startAngle = 120f,
+                sweepAngle = 300f,
+                useCenter = false,
+                topLeft = Offset(eyeL.x - eyeR_size, eyeL.y - eyeR_size),
+                size = Size(eyeR_size * 2, eyeR_size * 2),
+                style = Stroke(width = 5f, cap = StrokeCap.Round)
+            )
+            drawArc(
+                color = Color(0xFF212121),
+                startAngle = 120f,
+                sweepAngle = 300f,
+                useCenter = false,
+                topLeft = Offset(eyeR.x - eyeR_size, eyeR.y - eyeR_size),
+                size = Size(eyeR_size * 2, eyeR_size * 2),
+                style = Stroke(width = 5f, cap = StrokeCap.Round)
+            )
+        }
         isSad -> {
-            // Downward looking sad crying eyes with dynamic blue tear drops
-            drawCircle(color = Color(0xFF263238), radius = eyeR_size, center = eyeL)
-            drawCircle(color = Color(0xFF263238), radius = eyeR_size, center = eyeR)
+            // Glassy sad anime pleading eyes with tear drops 🥺 Soledad o Tristeza
+            drawCircle(color = Color(0xFF263238), radius = eyeR_size * 1.2f, center = eyeL)
+            drawCircle(color = Color(0xFF263238), radius = eyeR_size * 1.2f, center = eyeR)
             
-            // Highlights
-            drawCircle(color = Color.White, radius = eyeR_size * 0.3f, center = Offset(eyeL.x - 3f, eyeL.y - 3f))
-            drawCircle(color = Color.White, radius = eyeR_size * 0.3f, center = Offset(eyeR.x - 3f, eyeR.y - 3f))
+            // Large glistening reflections
+            drawCircle(color = Color.White, radius = eyeR_size * 0.55f, center = Offset(eyeL.x - 3f, eyeL.y - 3f))
+            drawCircle(color = Color.White, radius = eyeR_size * 0.55f, center = Offset(eyeR.x - 3f, eyeR.y - 3f))
+            drawCircle(color = Color.White, radius = eyeR_size * 0.28f, center = Offset(eyeL.x + 4f, eyeL.y + 4f))
+            drawCircle(color = Color.White, radius = eyeR_size * 0.28f, center = Offset(eyeR.x + 4f, eyeR.y + 4f))
 
             // Tear droplets running down
             val tearY = centerY + petRadius * 0.18f
-            drawCircle(color = Color(0xFF40C4FF), radius = 6f, center = Offset(eyeL.x, tearY))
-            drawCircle(color = Color(0xFF40C4FF), radius = 6f, center = Offset(eyeR.x, tearY))
+            drawCircle(color = Color(0xFF40C4FF), radius = 7f, center = Offset(eyeL.x - 4f, tearY))
+            drawCircle(color = Color(0xFF40C4FF), radius = 7f, center = Offset(eyeR.x + 4f, tearY))
         }
-        isTired -> {
-            // Half open heavy eyes
+        isTired || emotion == "Enfermo" -> {
+            // Heavy tired eyes
             val eyePathL = Path().apply {
                 addOval(Rect(eyeL.x - eyeR_size, eyeL.y - eyeR_size * 0.5f, eyeL.x + eyeR_size, eyeL.y + eyeR_size * 0.5f))
             }
@@ -462,7 +626,7 @@ private fun DrawScope.drawFace(
             }
             drawPath(eyePathL, Color(0xFF37474F))
             drawPath(eyePathR, Color(0xFF37474F))
-            // Drooping eyelid lines
+            // Drooping eyelids
             drawLine(
                 color = Color(0xFF78909C),
                 start = Offset(eyeL.x - eyeR_size * 1.1f, eyeL.y - 3f),
@@ -477,7 +641,7 @@ private fun DrawScope.drawFace(
             )
         }
         else -> {
-            // Default healthy blinking eyes
+            // Default healthy blinking eyes (including Jugando, Cantando, Pensando, Explorando, Esperando al jugador)
             val animatedHeight = eyeR_size * blinkFactor
             if (animatedHeight > 2f) {
                 drawOval(
@@ -513,12 +677,34 @@ private fun DrawScope.drawFace(
         }
     }
 
-    // --- DRAW CHEEKS (Blush) ---
-    val blushColor = Color(0x66FF8A80)
-    val blushRadius = petRadius * 0.12f
+    // --- DRAW CHEEKS (Blush / Embarrassment) ---
+    val isEmbarrassed = emotion == "Vergüenza" || emotion == "Timidez"
+    val blushColor = if (isEmbarrassed) Color(0xAAFF5252) else Color(0x66FF8A80)
+    val blushRadius = if (isEmbarrassed) petRadius * 0.18f else petRadius * 0.12f
     if (!isSleeping) {
         drawCircle(color = blushColor, radius = blushRadius, center = Offset(eyeL.x - petRadius * 0.15f, eyeL.y + petRadius * 0.18f))
         drawCircle(color = blushColor, radius = blushRadius, center = Offset(eyeR.x + petRadius * 0.15f, eyeR.y + petRadius * 0.18f))
+    }
+
+    // --- DRAW DETAILS ABOVE / SPECIAL INDICATORS ---
+    if (emotion == "Enojo") {
+        // Red angry crosses 💢 nearby the forehead
+        drawLine(Color.Red, Offset(centerX - petRadius * 0.8f, centerY - petRadius * 0.9f), Offset(centerX - petRadius * 0.6f, centerY - petRadius * 0.7f), strokeWidth = 5f)
+        drawLine(Color.Red, Offset(centerX - petRadius * 0.6f, centerY - petRadius * 0.9f), Offset(centerX - petRadius * 0.8f, centerY - petRadius * 0.7f), strokeWidth = 5f)
+    } else if (emotion == "Pensando") {
+        // High fidelity cute lightbulb symbol floating above
+        val bulbX = centerX + petRadius * 0.75f
+        val bulbY = centerY - petRadius * 1.05f
+        drawCircle(color = Color(0xFFFFF176), radius = 10f, center = Offset(bulbX, bulbY))
+        drawRect(color = Color(0xFF90A4AE), topLeft = Offset(bulbX - 4f, bulbY + 8f), size = Size(8f, 4f))
+        // light rays
+        drawLine(Color(0xFFFFF176), Offset(bulbX, bulbY - 16f), Offset(bulbX, bulbY - 12f), strokeWidth = 3f)
+        drawLine(Color(0xFFFFF176), Offset(bulbX - 16f, bulbY), Offset(bulbX - 12f, bulbY), strokeWidth = 3f)
+        drawLine(Color(0xFFFFF176), Offset(bulbX + 12f, bulbY), Offset(bulbX + 16f, bulbY), strokeWidth = 3f)
+    } else if (emotion == "Confusión") {
+        // Cute floating question marks
+        drawLine(Color(0xFFBA68C8), Offset(centerX - 10f, centerY - petRadius * 0.9f), Offset(centerX - 10f, centerY - petRadius * 0.75f), strokeWidth = 4f, cap = StrokeCap.Round)
+        drawCircle(Color(0xFFBA68C8), radius = 2.5f, center = Offset(centerX - 10f, centerY - petRadius * 0.7f))
     }
 
     // --- DRAW MOUTH ---
@@ -542,7 +728,65 @@ private fun DrawScope.drawFace(
                 center = Offset(centerX, mouthY)
             )
         }
-        isSad || isHungry -> {
+        emotion == "Cantando" -> {
+            // Singing beautiful round wide mouth notes O
+            drawCircle(
+                color = Color(0xFFD50000), // interior tongue / mic red
+                radius = 14f,
+                center = Offset(centerX, mouthY + 4f)
+            )
+            drawCircle(
+                color = Color(0xFF212121),
+                radius = 15f,
+                center = Offset(centerX, mouthY + 4f),
+                style = Stroke(width = 4f)
+            )
+        }
+        emotion == "Emoción" || emotion == "Jugando" -> {
+            // Huge open smiling screaming mouth showing tongue
+            val mouthPath = Path().apply {
+                moveTo(centerX - 18f, mouthY)
+                quadraticTo(centerX, mouthY - 5f, centerX + 18f, mouthY)
+                quadraticTo(centerX, mouthY + 22f, centerX - 18f, mouthY)
+            }
+            drawPath(mouthPath, Color(0xFF212121))
+            drawCircle(color = Color(0xFFFF5252), radius = 6f, center = Offset(centerX, mouthY + 10f)) // tongue
+        }
+        emotion == "Miedo" -> {
+            // Zigzag trembling worried mouth
+            val wobblyPath = Path().apply {
+                moveTo(centerX - 16f, mouthY)
+                lineTo(centerX - 10f, mouthY + 5f)
+                lineTo(centerX - 4f, mouthY - 3f)
+                lineTo(centerX + 2f, mouthY + 5f)
+                lineTo(centerX + 8f, mouthY - 3f)
+                lineTo(centerX + 16f, mouthY + 2f)
+            }
+            drawPath(wobblyPath, Color(0xFF212121), style = Stroke(width = 5f, cap = StrokeCap.Round))
+        }
+        emotion == "Enojo" -> {
+            // Wide flat zigzag grimace / frown
+            drawArc(
+                color = Color(0xFF212121),
+                startAngle = 180f,
+                sweepAngle = 180f,
+                useCenter = false,
+                topLeft = Offset(centerX - 18f, mouthY + 2f),
+                size = Size(36f, 14f),
+                style = Stroke(width = 6f, cap = StrokeCap.Round)
+            )
+        }
+        emotion == "Aburrimiento" -> {
+            // Boring simple flat straight line mouth
+            drawLine(
+                color = Color(0xFF212121),
+                start = Offset(centerX - 10f, mouthY + 4f),
+                end = Offset(centerX + 10f, mouthY + 4f),
+                strokeWidth = 5f,
+                cap = StrokeCap.Round
+            )
+        }
+        isSad || isHungry || emotion == "Enfermo" -> {
             // Sad down-mouth arc (inverted smile)
             drawArc(
                 color = Color(0xFF212121),

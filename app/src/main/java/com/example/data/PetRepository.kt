@@ -60,6 +60,25 @@ class PetRepository(private val petDao: PetDao) {
         return if (user.passwordHash == passwordHash) user else null
     }
 
+    suspend fun insertDownloadedUserAndPet(user: User, petState: PetState?) {
+        try {
+            val existing = petDao.getUserByUsername(user.username)
+            if (existing == null) {
+                petDao.insertUser(user)
+            }
+            if (petState != null) {
+                petDao.updatePetState(petState)
+            } else {
+                val existingPet = petDao.getPetStateOnce(user.username)
+                if (existingPet == null) {
+                    createEggForUser(user.username)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PetRepository", "Failed to insert downloaded user: ${e.message}", e)
+        }
+    }
+
     suspend fun createEggForUser(username: String): PetState {
         val egg = PetState(
             ownerUsername = username,
@@ -67,6 +86,9 @@ class PetRepository(private val petDao: PetDao) {
             hunger = 100f,
             sleep = 100f,
             happiness = 100f,
+            health = 100f,
+            hygiene = 100f,
+            currentEmotion = "Normal",
             xp = 0,
             level = 1,
             coins = 120,
