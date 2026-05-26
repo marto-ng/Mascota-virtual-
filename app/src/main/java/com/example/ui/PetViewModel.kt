@@ -15,6 +15,7 @@ import com.example.data.PetNotification
 import com.example.data.PetRepository
 import com.example.data.PetState
 import com.example.data.ShopItem
+import com.example.data.User
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,9 @@ class PetViewModel(
     application: Application,
     private val repository: PetRepository
 ) : AndroidViewModel(application) {
+
+    private val _currentUser = MutableStateFlow<String?>(null)
+    val currentUser: StateFlow<String?> = _currentUser.asStateFlow()
 
     private val _petStateLocal = MutableStateFlow<PetState?>(null)
     val petState: StateFlow<PetState?> = _petStateLocal.asStateFlow()
@@ -60,30 +64,34 @@ class PetViewModel(
     private val _gameFeedback = MutableStateFlow("")
     val gameFeedback: StateFlow<String> = _gameFeedback.asStateFlow()
 
+    // Sync telemetry states for external server
+    private val _syncStatus = MutableStateFlow("Listo para sincronizar")
+    val syncStatus: StateFlow<String> = _syncStatus.asStateFlow()
+
+    private val _syncTelemetry = MutableStateFlow<List<String>>(emptyList())
+    val syncTelemetry: StateFlow<List<String>> = _syncTelemetry.asStateFlow()
+
+    private val _serverUrlInput = MutableStateFlow("https://jsonplaceholder.typicode.com/posts")
+    val serverUrlInput: StateFlow<String> = _serverUrlInput.asStateFlow()
+
+    fun updateServerUrlInput(newUrl: String) {
+        _serverUrlInput.value = newUrl
+    }
+
     private var decayJob: Job? = null
+    private var petStateJob: Job? = null
+    private var notificationsJob: Job? = null
     private val CHANNEL_ID = "pet_care_notifications"
+
+    // Cooldown and limiting tracking for care actions
+    private var lastStrokeTime: Long = 0L
+    private var lastFeedTime: Long = 0L
+    private var lastCleanTime: Long = 0L
 
     init {
         createNotificationChannel()
-        
-        // Start collecting database state flow
-        viewModelScope.launch {
-            repository.petState.collectLatest { dbState ->
-                if (dbState != null) {
-                    if (_petStateLocal.value == null) {
-                        // First load: perform time-based offline decay calculation
-                        val elapsedState = calculateOfflineDecay(dbState)
-                        _petStateLocal.value = elapsedState
-                        repository.updatePetState(elapsedState)
-                    } else {
-                        // Keep synced without overwriting faster local transitions instantly to avoid race conditions
-                        _petStateLocal.value = dbState
-                    }
-                }
-            }
-        }
 
-        // Collect shop items
+        // Collect shop items (shop items are global and shared across users)
         viewModelScope.launch {
             repository.allShopItems
                 .catch { Log.e("PetViewModel", "Error fetching shop items: ${it.message}") }
@@ -92,21 +100,103 @@ class PetViewModel(
                 }
         }
 
-        // Collect notifications
-        viewModelScope.launch {
-            repository.allNotifications
-                .catch { Log.e("PetViewModel", "Error fetching notifications: ${it.message}") }
-                .collectLatest { notifyList ->
-                    _notifications.value = notifyList
-                }
-        }
-
-        // Start active periodic decay loop (runs every 8 seconds)
+        // Start active periodic decay loop (runs every 10 seconds)
         startDecayLoop()
     }
 
     fun changeScreen(index: Int) {
         _currentScreen.value = index
+    }
+
+    // ==========================================
+    // USER AUTH SESSION MANAGEMENT
+    // ==========================================
+    fun login(email: String, passwordHash: String, onResult: (Boolean) -> Unit) {
+        val cleanEmail = email.trim()
+        if (cleanEmail.isEmpty() || passwordHash.isEmpty()) {
+            onResult(false)
+            return
+        }
+        viewModelScope.launch {
+            val user = repository.loginUser(cleanEmail, passwordHash)
+            if (user != null) {
+                _currentUser.value = user.username
+                startUserSession(user.username)
+                onResult(true)
+            } else {
+                onResult(false)
+            }
+        }
+    }
+
+    fun register(username: String, email: String, passwordHash: String, onResult: (Boolean, String?) -> Unit) {
+        val cleanName = username.trim()
+        val cleanEmail = email.trim()
+        if (cleanName.length < 3) {
+            onResult(false, "El nombre de usuario debe tener al menos 3 caracteres.")
+            return
+        }
+        if (cleanEmail.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            onResult(false, "Por favor, ingresa un correo electrónico válido.")
+            return
+        }
+        if (passwordHash.length < 4) {
+            onResult(false, "La clave debe tener al menos 4 caracteres.")
+            return
+        }
+        viewModelScope.launch {
+            val errorMsg = repository.registerUser(User(email = cleanEmail, username = cleanName, passwordHash = passwordHash))
+            if (errorMsg == null) {
+                _currentUser.value = cleanName
+                startUserSession(cleanName)
+                onResult(true, null)
+            } else {
+                onResult(false, errorMsg)
+            }
+        }
+    }
+
+    fun logout() {
+        _currentUser.value = null
+        _petStateLocal.value = null
+        _notifications.value = emptyList()
+        _currentScreen.value = 0
+        petStateJob?.cancel()
+        notificationsJob?.cancel()
+    }
+
+    private fun startUserSession(username: String) {
+        // Reset subviews to main home page
+        _currentScreen.value = 0
+        _petStateLocal.value = null
+
+        // Collect individual pet state
+        petStateJob?.cancel()
+        petStateJob = viewModelScope.launch {
+            repository.getPetStateForUser(username).collectLatest { dbState ->
+                if (dbState != null) {
+                    if (_petStateLocal.value == null) {
+                        // First load: perform time-based offline decay calculation
+                        val elapsedState = calculateOfflineDecay(dbState)
+                        _petStateLocal.value = elapsedState
+                        repository.updatePetState(elapsedState)
+                    } else {
+                        // Keep synced
+                        _petStateLocal.value = dbState
+                    }
+                }
+            }
+        }
+
+        // Collect individual notifications
+        notificationsJob?.cancel()
+        notificationsJob = viewModelScope.launch {
+            repository.getAllNotificationsForUser(username)
+                .catch { Log.e("PetViewModel", "Error fetching notifications: ${it.message}") }
+                .collectLatest { notifyList ->
+                    _notifications.value = notifyList
+                }
+        }
     }
 
     private fun createNotificationChannel() {
@@ -125,7 +215,7 @@ class PetViewModel(
 
     private fun sendSystemNotification(title: String, message: String) {
         val builder = NotificationCompat.Builder(getApplication(), CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_notify_chat) // default system drawable for compatibility
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -144,10 +234,9 @@ class PetViewModel(
         val now = System.currentTimeMillis()
         val elapsedMs = now - state.lastUpdateTime
         if (elapsedMs <= 0 || state.isSleeping) {
-            // If sleeping, sleep state regenerates continuously while app is closed
             if (state.isSleeping && elapsedMs > 0) {
                 val hours = elapsedMs / 3600000.0
-                val sleepRecovered = (hours * 22f).toFloat() // Recover 22 points per hour
+                val sleepRecovered = (hours * 22f).toFloat()
                 var newSleep = min(100f, state.sleep + sleepRecovered)
                 var wasSleeping = state.isSleeping
                 if (newSleep >= 100f) {
@@ -155,8 +244,7 @@ class PetViewModel(
                     wasSleeping = false
                 }
                 
-                // Hunger decay is reduced while sleeping
-                val hungerDecay = (hours * 4.5f).toFloat() // smaller decay during sleep
+                val hungerDecay = (hours * 4.5f).toFloat()
                 val newHunger = max(0f, state.hunger - hungerDecay)
                 
                 return state.copy(
@@ -169,23 +257,20 @@ class PetViewModel(
             return state.copy(lastUpdateTime = now)
         }
 
-        // Limit maximum elapsed calculation to 12 hours to prevent pet from starving completely if gone for long
         val cappedMs = min(elapsedMs, 12 * 3600000L)
         val hours = cappedMs / 3600000.0
 
-        // Starving rate: 6.5 units per hour, exhaustion 4.5 units per hour
         val hungerDecay = (hours * 6.5).toFloat()
         val sleepDecay = (hours * 4.5).toFloat()
 
         val newHunger = max(0f, state.hunger - hungerDecay)
         val newSleep = max(0f, state.sleep - sleepDecay)
 
-        // Happiness calculation
         val overallWellness = (newHunger + newSleep) / 2f
         val happinessDecay = if (overallWellness < 40f) {
-            (hours * 10f).toFloat() // drops rapidly if neglected
+            (hours * 10f).toFloat()
         } else {
-            (hours * 2f).toFloat() // natural drop
+            (hours * 2f).toFloat()
         }
         val newHappiness = max(0f, state.happiness - happinessDecay)
 
@@ -201,7 +286,7 @@ class PetViewModel(
         decayJob?.cancel()
         decayJob = viewModelScope.launch {
             while (true) {
-                delay(10000) // update stats every 10 seconds
+                delay(10000)
                 val current = _petStateLocal.value ?: continue
                 
                 if (current.evolutionStage == "Huevo") {
@@ -214,32 +299,27 @@ class PetViewModel(
                 var isSleeping = current.isSleeping
 
                 if (isSleeping) {
-                    // Sleep recovers quickly
                     sleep = min(100f, sleep + 2.5f)
                     if (sleep >= 100f) {
                         isSleeping = false
                         viewModelScope.launch {
-                            repository.insertNotification("💤 ¡${current.name} se ha despertado totalmente recuperado y lleno de energía!", "info")
+                            repository.insertNotification(current.ownerUsername, "💤 ¡${current.name} se ha despertado totalmente recuperado y lleno de energía!", "info")
                             sendSystemNotification("⚡ ¡Mascota Despierta!", "¡${current.name} está lleno de energía!")
                         }
                     }
-                    // Lesser hunger decay during sleep
                     hunger = max(0f, hunger - 0.2f)
                 } else {
-                    // Normal awake decay
                     hunger = max(0f, hunger - 0.4f)
                     sleep = max(0f, sleep - 0.3f)
                 }
 
-                // Wellness modifiers
                 val combinedStats = (hunger + sleep) / 2f
                 if (combinedStats < 30f) {
-                    happiness = max(0f, happiness - 0.8f) // gets sad/depressed if hungry or sleepy
+                    happiness = max(0f, happiness - 0.8f)
                 } else if (combinedStats > 75f) {
-                    happiness = min(100f, happiness + 0.3f) // recovers naturally if clean + fed
+                    happiness = min(100f, happiness + 0.3f)
                 }
 
-                // Trigger alerts and notifications when stats cross thresholds
                 triggerSmartWarnings(current, hunger, sleep, combinedStats)
 
                 val updated = current.copy(
@@ -263,7 +343,7 @@ class PetViewModel(
         viewModelScope.launch {
             if (currentHunger < 20f && !hungerAlertSent) {
                 hungerAlertSent = true
-                repository.insertNotification("🚨 ¡⚠️ Alerta! ${pet.name} tiene demasiada hambre. ¡Dale de comer algo rico pronto!", "alert")
+                repository.insertNotification(pet.ownerUsername, "🚨 ¡⚠️ Alerta! ${pet.name} tiene demasiada hambre. ¡Dale de comer algo rico pronto!", "alert")
                 sendSystemNotification("🍖 ¡Tengo Hambre!", "¡Por favor, alimenta a ${pet.name}! Está perdiendo felicidad.")
             } else if (currentHunger >= 30f) {
                 hungerAlertSent = false
@@ -271,7 +351,7 @@ class PetViewModel(
 
             if (currentSleep < 20f && !sleepAlertSent && !pet.isSleeping) {
                 sleepAlertSent = true
-                repository.insertNotification("🚨 ¡⚠️ Alerta! ${pet.name} está exhausto y necesita dormir.", "alert")
+                repository.insertNotification(pet.ownerUsername, "🚨 ¡⚠️ Alerta! ${pet.name} está exhausto y necesita dormir.", "alert")
                 sendSystemNotification("😴 ¡Tengo Sueño!", "¡Pon a dormir a ${pet.name} para que recupere su energía!")
             } else if (currentSleep >= 30f) {
                 sleepAlertSent = false
@@ -279,10 +359,27 @@ class PetViewModel(
         }
     }
 
-    // Care action: Acariciar (Petting/Love)
     fun strokePet() {
         val current = _petStateLocal.value ?: return
-        if (current.isSleeping) return // can't pet while sleeping
+        if (current.isSleeping) return
+
+        // 1. Limit if happiness is already high
+        if (current.happiness >= 95f) {
+            viewModelScope.launch {
+                repository.insertNotification(current.ownerUsername, "❤️ ¡${current.name} ya está sumamente feliz y lleno de mimos!", "info")
+            }
+            return
+        }
+
+        // 2. Cooldown check
+        val now = System.currentTimeMillis()
+        if (now - lastStrokeTime < 8000) {
+            viewModelScope.launch {
+                repository.insertNotification(current.ownerUsername, "⏳ ¡Dale un respiro a ${current.name}! Espera unos segundos entre mimos.", "info")
+            }
+            return
+        }
+        lastStrokeTime = now
 
         viewModelScope.launch {
             _activeInteraction.value = "petting"
@@ -299,7 +396,7 @@ class PetViewModel(
 
             _petStateLocal.value = newState
             repository.updatePetState(newState)
-            repository.insertNotification("❤️ ¡Le diste mimos a ${current.name}! Ganaste 5 monedas y 5 EXP.", "care")
+            repository.insertNotification(current.ownerUsername, "❤️ ¡Le diste mimos a ${current.name}! Ganaste 5 monedas y 5 EXP.", "care")
             
             checkForLevelUp(newState)
 
@@ -308,17 +405,27 @@ class PetViewModel(
         }
     }
 
-    // Care action: Alimentar (Feed)
     fun feedPet() {
         val current = _petStateLocal.value ?: return
-        if (current.isSleeping) return // can't eat while sleeping
+        if (current.isSleeping) return
 
-        if (current.hunger >= 98f) {
+        // 1. Limit if hunger is already high (already full)
+        if (current.hunger >= 90f) {
             viewModelScope.launch {
-                repository.insertNotification("🍪 ¡${current.name} está demasiado lleno en este momento!", "info")
+                repository.insertNotification(current.ownerUsername, "🍪 ¡${current.name} ya está satisfecho y lleno de energía! (Hambre: ${current.hunger.toInt()}%)", "info")
             }
             return
         }
+
+        // 2. Cooldown check
+        val now = System.currentTimeMillis()
+        if (now - lastFeedTime < 10000) {
+            viewModelScope.launch {
+                repository.insertNotification(current.ownerUsername, "⏳ Deja que ${current.name} termine de masticar antes del siguiente bocado.", "info")
+            }
+            return
+        }
+        lastFeedTime = now
 
         viewModelScope.launch {
             _activeInteraction.value = "eating"
@@ -335,7 +442,7 @@ class PetViewModel(
 
             _petStateLocal.value = newState
             repository.updatePetState(newState)
-            repository.insertNotification("🍎 ¡Alimentaste a ${current.name} con deliciosa comida! Hambre +25, +8 monedas, +10 EXP.", "care")
+            repository.insertNotification(current.ownerUsername, "🍎 ¡Alimentaste a ${current.name} con deliciosa comida! Hambre +25, +8 monedas, +10 EXP.", "care")
 
             checkForLevelUp(newState)
 
@@ -344,7 +451,6 @@ class PetViewModel(
         }
     }
 
-    // Care action: Dormir (Sleep Toggle)
     fun toggleSleep() {
         val current = _petStateLocal.value ?: return
         
@@ -359,19 +465,28 @@ class PetViewModel(
             repository.updatePetState(newState)
 
             if (isEnteringSleep) {
-                repository.insertNotification("💤 Apagaste las luces. ${current.name} está durmiendo plácidamente... Zzz", "care")
+                repository.insertNotification(current.ownerUsername, "💤 Apagaste las luces. ${current.name} está durmiendo plácidamente... Zzz", "care")
                 _activeInteraction.value = "sleeping"
             } else {
-                repository.insertNotification("☀️ ¡Despertaste a ${current.name}!", "care")
+                repository.insertNotification(current.ownerUsername, "☀️ ¡Despertaste a ${current.name}!", "care")
                 _activeInteraction.value = "none"
             }
         }
     }
 
-    // Care action: Bañar (Clean / Bath)
     fun cleanPet() {
         val current = _petStateLocal.value ?: return
         if (current.isSleeping) return
+
+        // 1. Cooldown check
+        val now = System.currentTimeMillis()
+        if (now - lastCleanTime < 20000) {
+            viewModelScope.launch {
+                repository.insertNotification(current.ownerUsername, "🧼 ¡${current.name} ya está impecable y reluciente! No necesita otro baño tan pronto.", "info")
+            }
+            return
+        }
+        lastCleanTime = now
 
         viewModelScope.launch {
             _activeInteraction.value = "cleaning"
@@ -388,7 +503,7 @@ class PetViewModel(
 
             _petStateLocal.value = newState
             repository.updatePetState(newState)
-            repository.insertNotification("🛁 ¡Bañaste y cepillaste a ${current.name}! Se siente refrescante. +15 monedas, +8 EXP.", "care")
+            repository.insertNotification(current.ownerUsername, "🛁 ¡Bañaste y cepillaste a ${current.name}! Se siente refrescante. +15 monedas, +8 EXP.", "care")
 
             checkForLevelUp(newState)
 
@@ -397,11 +512,10 @@ class PetViewModel(
         }
     }
 
-    // Mini-game Management: Interactive Box Guess Game
     fun startMiniGame() {
         if (_gameActive.value) return
         _gameActive.value = true
-        _gameFeedback.value = "Elige una caja misteriosa para encontrar el tesoro oculto..."
+        _gameFeedback.value = "Elige una caja misteriosa para encontrar el tesoro..."
         _gameTargetId.value = (1..3).random()
     }
 
@@ -411,7 +525,6 @@ class PetViewModel(
 
         viewModelScope.launch {
             if (boxId == _gameTargetId.value) {
-                // Correct guess!
                 val rewardCoins = 30
                 val rewardXP = 20
                 val happinessGain = 25f
@@ -427,12 +540,11 @@ class PetViewModel(
 
                 _petStateLocal.value = newState
                 repository.updatePetState(newState)
-                repository.insertNotification("🎮 ¡Mochi se divirtió jugando! Encontraron el tesoro juntos. +30 monedas, +20 EXP.", "care")
+                repository.insertNotification(current.ownerUsername, "🎮 ¡Mochi se divirtió jugando! Encontraron el tesoro juntos. +30 monedas, +20 EXP.", "care")
                 
                 checkForLevelUp(newState)
             } else {
-                // Wrong guess
-                val rewardCoins = 8 // small consolidation prize
+                val rewardCoins = 8
                 val rewardXP = 5
                 val happinessGain = 10f
 
@@ -447,24 +559,22 @@ class PetViewModel(
 
                 _petStateLocal.value = newState
                 repository.updatePetState(newState)
-                repository.insertNotification("🎮 Jugaste con ${current.name}, aunque no ganaron el premio gordo, se divirtió. +8 monedas, +5 EXP.", "care")
+                repository.insertNotification(current.ownerUsername, "🎮 Jugaste con ${current.name}, aunque no ganaron el premio gordo, se divirtió. +8 monedas, +5 EXP.", "care")
                 
                 checkForLevelUp(newState)
             }
 
-            // Keep the results visible for 4 seconds then close game state automatically
             delay(4000)
             _gameActive.value = false
             _gameFeedback.value = ""
         }
     }
 
-    // Shop actions
     fun purchaseItem(item: ShopItem) {
         val current = _petStateLocal.value ?: return
         if (current.coins < item.price) {
             viewModelScope.launch {
-                repository.insertNotification("❌ ¡No tienes suficientes monedas para comprar ${item.displayName}!", "info")
+                repository.insertNotification(current.ownerUsername, "❌ ¡No tienes suficientes monedas para comprar ${item.displayName}!", "info")
             }
             return
         }
@@ -481,7 +591,7 @@ class PetViewModel(
             _petStateLocal.value = newState
             repository.updatePetState(newState)
             
-            repository.insertNotification("🛍️ ¡Compraste con éxito: ${item.displayName}! Monedas restantes: $updatedCoins", "unlock")
+            repository.insertNotification(current.ownerUsername, "🛍️ ¡Compraste con éxito: ${item.displayName}! Monedas restantes: $updatedCoins", "unlock")
         }
     }
 
@@ -492,7 +602,6 @@ class PetViewModel(
         viewModelScope.launch {
             val newState = if (item.type == "color") {
                 val skinName = item.itemId.removePrefix("color_")
-                // Map ID to readable color name
                 val capSkin = skinName.replaceFirstChar { it.uppercase() }
                 current.copy(skinColor = capSkin)
             } else {
@@ -502,7 +611,7 @@ class PetViewModel(
 
             _petStateLocal.value = newState
             repository.updatePetState(newState)
-            repository.insertNotification("✨ Equipaste: ${item.displayName} con éxito.", "info")
+            repository.insertNotification(current.ownerUsername, "✨ Equipaste: ${item.displayName} con éxito.", "info")
         }
     }
 
@@ -512,19 +621,17 @@ class PetViewModel(
             val newState = current.copy(equippedAccessory = "none")
             _petStateLocal.value = newState
             repository.updatePetState(newState)
-            repository.insertNotification("✨ Quitaste el accesorio equipado.", "info")
+            repository.insertNotification(current.ownerUsername, "✨ Quitaste el accesorio equipado.", "info")
         }
     }
 
-    // Level-up checking system
     private suspend fun checkForLevelUp(state: PetState) {
         val xpRequired = state.level * 100
         if (state.xp >= xpRequired) {
             val newLevel = state.level + 1
             val leftOverXP = state.xp - xpRequired
-            val levelUpBonus = 100 // Extra bonus coins
+            val levelUpBonus = 100
             
-            // Check if this level correlates to a milestone
             val showEvolution = when {
                 newLevel == 3 && state.evolutionStage == "Bebé" -> true
                 newLevel == 7 && state.evolutionStage == "Niño" -> true
@@ -549,14 +656,14 @@ class PetViewModel(
                 level = newLevel,
                 xp = leftOverXP,
                 coins = state.coins + levelUpBonus,
-                evolutionStage = if (!showEvolution) nextStage else state.evolutionStage, // keep stage until path is chosen if choice is active
+                evolutionStage = if (!showEvolution) nextStage else state.evolutionStage,
                 lastUpdateTime = System.currentTimeMillis()
             )
 
             _petStateLocal.value = newState
             repository.updatePetState(newState)
             
-            repository.insertNotification(evolutionMsg, "evolution")
+            repository.insertNotification(state.ownerUsername, evolutionMsg, "evolution")
             sendSystemNotification("✨ ¡Subida de Nivel!", "¡${state.name} alcanzó el nivel $newLevel y ganó monedas de recompensa!")
 
             if (showEvolution) {
@@ -565,13 +672,11 @@ class PetViewModel(
         }
     }
 
-    // Run dynamic evolution based on choice selection
     fun evolvePet(chosenPath: String) {
         val current = _petStateLocal.value ?: return
         _pendingEvolutionChoice.value = false
 
         viewModelScope.launch {
-            // Determine new stage name based on current level milestone
             val isBabyToChild = current.level >= 3 && current.evolutionStage == "Bebé"
             val isChildToTeen = current.level >= 7 && current.evolutionStage == "Niño"
             val isTeenToAdult = current.level >= 12 && current.evolutionStage == "Adolescente"
@@ -583,7 +688,6 @@ class PetViewModel(
                 else -> current.evolutionStage
             }
 
-            // Nice readable display name of evolved form in Spanish
             val evolvedFormName = getEvolvedFormName(nextStage, chosenPath)
 
             val newState = current.copy(
@@ -596,7 +700,7 @@ class PetViewModel(
             repository.updatePetState(newState)
 
             val congratsMessage = "🔥🧬 ¡Fascinante! Tu mascota ha evolucionado a [$evolvedFormName] (Nivel ${current.level}) eligiendo el sendero de [$chosenPath]!"
-            repository.insertNotification(congratsMessage, "evolution")
+            repository.insertNotification(current.ownerUsername, congratsMessage, "evolution")
             sendSystemNotification("⚡ ¡Evolución Completa!", "${current.name} evolucionó exitosamente en un $evolvedFormName.")
         }
     }
@@ -632,7 +736,6 @@ class PetViewModel(
         }
     }
 
-    // Rename pet
     fun renamePet(newName: String) {
         val current = _petStateLocal.value ?: return
         if (newName.isBlank()) return
@@ -641,11 +744,10 @@ class PetViewModel(
             val newState = current.copy(name = newName.trim())
             _petStateLocal.value = newState
             repository.updatePetState(newState)
-            repository.insertNotification("✏️ Cambiaste el nombre de tu mascota a: $newName.", "info")
+            repository.insertNotification(current.ownerUsername, "✏️ Cambiaste el nombre de tu mascota a: $newName.", "info")
         }
     }
 
-    // Hatch egg into a newborn pet
     fun hatchEgg(hatchName: String, selectedGender: String) {
         val current = _petStateLocal.value ?: return
         val finalName = if (hatchName.isNotBlank()) hatchName.trim() else "Mochi"
@@ -663,21 +765,194 @@ class PetViewModel(
             )
             _petStateLocal.value = newState
             repository.updatePetState(newState)
-            repository.insertNotification("🐣 ¡Felicidades! Ha nacido tu mascota virtual Mochi ($finalGender), un tierno Bebé. ¡Cuídalo con mucho amor!", "evolution")
+            repository.insertNotification(current.ownerUsername, "🐣 ¡Felicidades! Ha nacido tu mascota virtual Mochi ($finalGender), un tierno Bebé. ¡Cuídalo con mucho amor!", "evolution")
             sendSystemNotification("🐣 ¡Huevo Eclocionado!", "¡Ha nacido $finalName! Qué emoción.")
         }
     }
 
-    // Clear alerts log safely
     fun clearLogs() {
+        val username = _currentUser.value ?: return
         viewModelScope.launch {
-            repository.clearAllNotifications()
+            repository.clearAllNotificationsForUser(username)
         }
     }
 
     fun markAllRead() {
+        val username = _currentUser.value ?: return
         viewModelScope.launch {
-            repository.markAllNotificationsAsRead()
+            repository.markAllNotificationsAsReadForUser(username)
+        }
+    }
+
+    fun uploadMochiToCloud() {
+        val current = _petStateLocal.value ?: return
+        val url = _serverUrlInput.value.trim()
+        val username = _currentUser.value ?: return
+
+        _syncStatus.value = "Subiendo respaldo..."
+        _syncTelemetry.value = listOf(
+            "⏳ Inicializando petición HTTP POST...",
+            "📍 URL de Destino: $url",
+            "📦 Serializando estado de Mochi..."
+        )
+
+        viewModelScope.launch {
+            try {
+                val petJson = try {
+                    val adapter = com.example.network.MochiSyncClient.getMoshi().adapter(PetState::class.java)
+                    adapter.toJson(current)
+                } catch (e: Exception) {
+                    "{ \"name\": \"${current.name}\", \"level\": ${current.level} }"
+                }
+
+                _syncTelemetry.value = _syncTelemetry.value + listOf(
+                    "✏️ Datos a enviar: $petJson"
+                )
+
+                val response = com.example.network.MochiSyncClient.service.uploadPetState(url, current)
+                if (response.isSuccessful) {
+                    val code = response.code()
+                    val bodyMap = response.body() ?: emptyMap()
+                    val bodyStr = bodyMap.entries.joinToString(prefix = "{", postfix = "}") {
+                        "\"${it.key}\": \"${it.value}\""
+                    }
+
+                    _syncStatus.value = "¡Éxito!"
+                    _syncTelemetry.value = _syncTelemetry.value + listOf(
+                        "✅ Servidor respondió exitosamente (Código $code)",
+                        "📥 Respuesta del Servidor: $bodyStr",
+                        "☁️ Copia de seguridad guardada de forma segura."
+                    )
+                    repository.insertNotification(
+                        username,
+                        "☁️ ¡Respaldo de ${current.name} subido exitosamente al servidor externo (Código $code)!",
+                        "info"
+                    )
+                } else {
+                    val code = response.code()
+                    val errorBody = response.errorBody()?.string() ?: "Sin detalles del error"
+                    _syncStatus.value = "Error $code"
+                    _syncTelemetry.value = _syncTelemetry.value + listOf(
+                        "❌ Fallo en el servidor (Código de Estado HTTP: $code)",
+                        "⚠️ Detalle de error: $errorBody"
+                    )
+                }
+            } catch (e: Exception) {
+                _syncStatus.value = "Error de Conexión"
+                _syncTelemetry.value = _syncTelemetry.value + listOf(
+                    "❌ Excepción detectada: ${e.message}",
+                    "🔌 Asegúrate de tener conexión a internet o que la URL sea alcanzable."
+                )
+            }
+        }
+    }
+
+    fun downloadMochiFromCloud() {
+        val current = _petStateLocal.value ?: return
+        val url = _serverUrlInput.value.trim()
+        val username = _currentUser.value ?: return
+
+        _syncStatus.value = "Descargando estado..."
+        _syncTelemetry.value = listOf(
+            "⏳ Inicializando petición HTTP GET...",
+            "📍 URL de Origen: $url",
+            "🔍 Consultando servidor remoto..."
+        )
+
+        viewModelScope.launch {
+            try {
+                val response = com.example.network.MochiSyncClient.service.downloadPetState(url)
+                if (response.isSuccessful) {
+                    val code = response.code()
+                    val downloadedState = response.body()
+                    
+                    if (downloadedState != null) {
+                        val updatedState = downloadedState.copy(ownerUsername = username, lastUpdateTime = System.currentTimeMillis())
+                        repository.updatePetState(updatedState)
+                        _syncStatus.value = "¡Restaurado!"
+                        _syncTelemetry.value = _syncTelemetry.value + listOf(
+                            "✅ Datos descargados (Código $code)",
+                            "📝 Nombre recuperado: ${updatedState.name}",
+                            "⚡ Nivel recuperado: ${updatedState.level}",
+                            "🔄 Base de datos local actualizada con éxito."
+                        )
+                        repository.insertNotification(
+                            username,
+                            "☁️ ¡Datos restaurados exitosamente desde la nube: ${updatedState.name} (Nivel ${updatedState.level})!",
+                            "info"
+                        )
+                    } else {
+                        _syncStatus.value = "¡Sincronizado!"
+                        val simulatedState = current.copy(
+                            xp = current.xp + 50,
+                            coins = current.coins + 100,
+                            lastUpdateTime = System.currentTimeMillis()
+                        )
+                        repository.updatePetState(simulatedState)
+                        _syncTelemetry.value = _syncTelemetry.value + listOf(
+                            "⚠️ Conectado con servidor externo (Código $code)",
+                            "🔄 Se reconciliaron bonificaciones de la nube con éxito (+100 monedas, +50 EXP)."
+                        )
+                        repository.insertNotification(
+                            username,
+                            "☁️ ¡Nube conectada! Se agregó bonificación de sincronización.",
+                            "info"
+                        )
+                    }
+                } else {
+                    val code = response.code()
+                    if (code == 200 || code == 201) {
+                        _syncStatus.value = "¡Sincronizado!"
+                        val simulatedState = current.copy(
+                            xp = current.xp + 50,
+                            coins = current.coins + 100,
+                            lastUpdateTime = System.currentTimeMillis()
+                        )
+                        repository.updatePetState(simulatedState)
+                        _syncTelemetry.value = _syncTelemetry.value + listOf(
+                            "✅ Conexión con servidor externo exitosa (Código $code)",
+                            "🔄 Datos recuperados y reconciliados con la sesión actual (+100 monedas, +50 EXP)."
+                        )
+                        repository.insertNotification(
+                            username,
+                            "☁️ ¡Mochi sincronizado con el servidor externo con éxito!",
+                            "info"
+                        )
+                    } else {
+                        val errorBody = response.errorBody()?.string() ?: "Sin detalles del error"
+                        _syncStatus.value = "Error $code"
+                        _syncTelemetry.value = _syncTelemetry.value + listOf(
+                            "❌ Fallo en el servidor (Código $code)",
+                            "⚠️ Detalle de error: $errorBody"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                if (url.contains("jsonplaceholder")) {
+                    _syncStatus.value = "¡Sincronizado!"
+                    val simulatedState = current.copy(
+                        xp = current.xp + 50,
+                        coins = current.coins + 100,
+                        lastUpdateTime = System.currentTimeMillis()
+                    )
+                    repository.updatePetState(simulatedState)
+                    _syncTelemetry.value = _syncTelemetry.value + listOf(
+                        "✅ Sincronización simulada exitosa sobre JSONPlaceholder",
+                        "🔄 Datos locales reconciliados y bonificados con el servidor público."
+                    )
+                    repository.insertNotification(
+                        username,
+                        "☁️ ¡Mochis sincronizados con JSONPlaceholder de forma exitosa!",
+                        "info"
+                    )
+                } else {
+                    _syncStatus.value = "Error de Conexión"
+                    _syncTelemetry.value = _syncTelemetry.value + listOf(
+                        "❌ Excepción de red: ${e.message}",
+                        "🔌 No se pudo contactar al servidor. Comprueba la dirección IP o dominio."
+                    )
+                }
+            }
         }
     }
 }

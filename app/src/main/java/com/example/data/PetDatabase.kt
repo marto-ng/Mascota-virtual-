@@ -4,7 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [PetState::class, ShopItem::class, PetNotification::class],
+    entities = [PetState::class, ShopItem::class, PetNotification::class, User::class],
     version = 1,
     exportSchema = false
 )

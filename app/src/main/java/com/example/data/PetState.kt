@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "pet_state")
 data class PetState(
-    @PrimaryKey val id: Int = 1,
+    @PrimaryKey val ownerUsername: String = "guest",
     val name: String = "Mochi",
     val hunger: Float = 80f, // 0 to 100 (100 is full, 0 is starving)
     val sleep: Float = 80f,  // 0 to 100 (100 is fully rested, 0 is exhausted)

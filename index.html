@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mochi — Mascota Virtual | Descubre la Evolución Dinámica</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="app/src/main/res/drawable/img_mochi_icon_1779753318659.png">
+    <link rel="icon" type="image/png" href="app/src/main/res/drawable/img_mochi_icon.png">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -76,7 +76,7 @@
     <nav class="relative z-50 border-b border-white/5 backdrop-blur-md bg-brand-950/60 sticky top-0">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <img src="app/src/main/res/drawable/img_mochi_icon_1779753318659.png" alt="Mochi" class="w-10 h-10 rounded-xl object-cover shadow-lg border border-white/10">
+                <img src="app/src/main/res/drawable/img_mochi_icon.png" alt="Mochi" class="w-10 h-10 rounded-xl object-cover shadow-lg border border-white/10">
                 <span class="text-xl font-bold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-white to-brand-300">Mochi</span>
             </div>
             <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
@@ -145,53 +145,324 @@
                     <!-- Glow Behind Console -->
                     <div class="absolute inset-0 bg-purple-500/20 rounded-full filter blur-[80px] w-72 h-72 mx-auto my-auto animate-float-slow pointer-events-none"></div>
                     
-                    <!-- App Screenshot/Simulation device frame container -->
-                    <div class="relative w-72 sm:w-80 border-8 border-slate-800 bg-slate-950 rounded-[44px] shadow-2xl shadow-indigo-500/10 overflow-hidden animate-float-medium aspect-[9/18.5]">
-                        <!-- Notch -->
-                        <div class="absolute top-0 inset-x-0 h-6 bg-slate-800 rounded-b-2xl z-40 flex justify-center items-center">
-                            <div class="w-16 h-4 bg-slate-950 rounded-full"></div>
+                    <!-- App Screenshot/Simulation device frame container (Interactive App Live Simulator) -->
+                    <div class="relative w-72 sm:w-80 h-[600px] border-8 border-slate-800 bg-slate-950 rounded-[44px] shadow-2xl shadow-indigo-500/10 overflow-hidden animate-float-medium flex flex-col justify-between">
+                        <!-- Top Speaker / Camera Notch -->
+                        <div class="absolute top-0 inset-x-0 h-6 bg-slate-800 rounded-b-2xl z-50 flex justify-center items-center">
+                            <div class="w-16 h-3.5 bg-slate-950 rounded-full"></div>
                         </div>
 
-                        <!-- Screen Content (Visual representation matching UI theme) -->
-                        <div class="w-full h-full bg-slate-900 px-4 pt-10 pb-6 flex flex-col justify-between text-left select-none overflow-hidden relative">
-                            <!-- In-game stats card representation -->
-                            <div class="bg-slate-850/80 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3 space-y-2.5 z-10 mt-1">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-xs font-bold text-white">Mochi 🌟</p>
-                                        <p class="text-[9px] text-slate-400">Nivel 4 | Niño Fuego 🔥</p>
-                                    </div>
-                                    <span class="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-md">150g</span>
+                        <!-- Main Screen UI -->
+                        <div class="flex-1 flex flex-col justify-between bg-slate-900 pt-8 pb-3 px-4 relative overflow-hidden select-none">
+                            
+                            <!-- SCREEN 0: AUTHENTICATION SCREEN -->
+                            <div id="sim-screen-auth" class="flex-1 flex flex-col justify-between py-1 animate-fadeIn">
+                                <div class="text-center space-y-0.5">
+                                    <h4 class="text-amber-400 font-extrabold text-xs tracking-wider uppercase font-display">👾 MOCHI PETS 👾</h4>
+                                    <p class="text-[8px] text-slate-500">Hatchery Inteligente Terrestre</p>
                                 </div>
-                                <div class="space-y-1.5">
-                                    <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                        <div class="w-4/5 h-full bg-rose-500 rounded-full"></div>
+
+                                <!-- Tab Switcher -->
+                                <div class="bg-slate-950 p-0.5 rounded-lg border border-slate-800 grid grid-cols-2 gap-0.5 my-1.5 shrink-0">
+                                    <button onclick="toggleSimAuthTab(false)" id="sim-auth-tab-login" class="py-1 text-[8px] font-bold rounded-md bg-brand-500 text-slate-950 transition-all leading-none">Iniciar Sesión</button>
+                                    <button onclick="toggleSimAuthTab(true)" id="sim-auth-tab-register" class="py-1 text-[8px] font-bold rounded-md text-slate-400 hover:text-slate-200 transition-all leading-none">Crear Cuenta</button>
+                                </div>
+
+                                <!-- Form inputs -->
+                                <div class="space-y-1 my-auto flex-1 flex flex-col justify-center">
+                                    <div id="sim-auth-username-group" class="space-y-0.5 hidden">
+                                        <label class="text-[7.5px] font-bold text-slate-400 uppercase tracking-wide">Nombre de usuario</label>
+                                        <input type="text" id="sim-auth-username" placeholder="Ej: martin12" class="w-full h-7 text-[9px] bg-slate-950 border border-slate-800 rounded-lg px-2 text-white placeholder-slate-650 focus:outline-none focus:border-brand-400">
                                     </div>
-                                    <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                        <div class="w-[75%] h-full bg-sky-500 rounded-full"></div>
+                                    <div class="space-y-0.5">
+                                        <label class="text-[7.5px] font-bold text-slate-400 uppercase tracking-wide">Email</label>
+                                        <input type="email" id="sim-auth-email" placeholder="Ej: usuario@correo.com" class="w-full h-7 text-[9px] bg-slate-950 border border-slate-800 rounded-lg px-2 text-white placeholder-slate-650 focus:outline-none focus:border-brand-400">
                                     </div>
+                                    <div class="space-y-0.5">
+                                        <label class="text-[7.5px] font-bold text-slate-400 uppercase tracking-wide">Contraseña</label>
+                                        <input type="password" id="sim-auth-password" placeholder="••••••••" class="w-full h-7 text-[9px] bg-slate-950 border border-slate-800 rounded-lg px-2 text-white placeholder-slate-500 focus:outline-none focus:border-brand-400">
+                                    </div>
+                                    <div id="sim-auth-confirm-group" class="space-y-0.5 hidden">
+                                        <label class="text-[7.5px] font-bold text-slate-400 uppercase tracking-wide">Confirmar Contraseña</label>
+                                        <input type="password" id="sim-auth-confirm" placeholder="••••••••" class="w-full h-7 text-[9px] bg-slate-950 border border-slate-800 rounded-lg px-2 text-white placeholder-slate-500 focus:outline-none focus:border-brand-400">
+                                    </div>
+                                    
+                                    <!-- Messages error/success feedback -->
+                                    <p id="sim-auth-error" class="text-[8px] text-rose-400 font-semibold text-center mt-0.5 hidden leading-tight">⚠️ Por favor, llena todos los campos.</p>
+                                    <p id="sim-auth-success" class="text-[8px] text-emerald-400 font-semibold text-center mt-0.5 hidden leading-tight">✓ ¡Ingreso exitoso!</p>
+                                </div>
+
+                                <button onclick="submitSimAuth()" id="sim-btn-auth-submit" class="w-full h-7.5 bg-brand-500 hover:bg-brand-400 text-slate-950 font-extrabold text-[9px] uppercase rounded-lg transition-all shadow-md shadow-brand-500/10 mt-1.5 shrink-0">
+                                    ACCEDER 🚀
+                                </button>
+                            </div>
+
+                            <!-- SCREEN 1: HATCHING / INCUBATION SCREEN (HIDDEN BY DEFAULT) -->
+                            <div id="sim-screen-hatching" class="flex-1 flex flex-col justify-between py-2 hidden">
+                                <div class="text-center space-y-1">
+                                    <h4 class="text-amber-400 font-extrabold text-xs tracking-wider uppercase font-display">🔋 Laboratorio de Mochi</h4>
+                                    <p class="text-[10px] text-slate-500">Configura la identidad y toca para abrir</p>
+                                </div>
+
+                                <!-- Egg Animation area -->
+                                <div class="relative py-2 flex flex-col items-center justify-center">
+                                    <!-- Flying sparks -->
+                                    <div id="sim-hatch-sparkles" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                        <span class="absolute text-yellow-300 text-lg opacity-0 transition-all duration-300 transform" style="animation: floatUp 1.5s infinite">✨</span>
+                                    </div>
+
+                                    <!-- Egg Frame -->
+                                    <div id="sim-interactive-egg" class="w-24 h-28 bg-gradient-to-b from-sky-400 to-sky-600 rounded-t-full rounded-b-[75%] shadow-xl shadow-sky-500/10 flex flex-col items-center justify-end pb-6 relative cursor-pointer border-2 border-sky-300 hover:scale-105 transition-all duration-200">
+                                        <!-- Spots -->
+                                        <div class="w-3 h-3 bg-amber-300 rounded-full absolute top-6 left-5 opacity-80"></div>
+                                        <div class="w-4 h-4 bg-purple-300 rounded-full absolute top-10 right-4 opacity-80"></div>
+                                        <div class="w-2.5 h-2.5 bg-emerald-300 rounded-full absolute bottom-10 left-8 opacity-80"></div>
+                                        
+                                        <!-- Cute anime closed eyes -->
+                                        <div class="flex gap-3 mb-3">
+                                            <div class="text-xs font-bold text-teal-950 leading-none">⌒</div>
+                                            <div class="text-xs font-bold text-teal-950 leading-none">⌒</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tap alert badge -->
+                                    <div id="sim-hatch-pill" class="mt-3 px-2.5 py-0.5 bg-slate-950/80 border border-brand-500/20 rounded-full text-[9px] text-slate-400 font-bold hidden">
+                                        🥚 ¡Toca el huevo! Taps: <span id="sim-hatch-counter" class="text-brand-300 font-extrabold">5</span>
+                                    </div>
+                                    <div id="sim-hatch-pill-inactive" class="mt-3 px-2.5 py-0.5 bg-slate-950/50 border border-slate-700/30 rounded-full text-[9px] text-slate-500">
+                                        💤 Elige el sexo abajo para iniciar
+                                    </div>
+                                </div>
+
+                                <!-- Form inputs -->
+                                <div id="sim-hatching-form" class="space-y-2 bg-slate-950/60 border border-slate-850 p-2.5 rounded-2xl">
+                                    <div class="space-y-0.5">
+                                        <label class="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Nombre de tu Mochi</label>
+                                        <input type="text" id="sim-input-name" placeholder="Ej: Chobi" class="w-full h-7 text-[10px] bg-slate-900 border border-slate-700 rounded-lg px-2 text-white placeholder-slate-600 focus:outline-none focus:border-brand-400">
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Selecciona Sexo ♂️ ♀️</label>
+                                        <div class="grid grid-cols-2 gap-1.5">
+                                            <button onclick="setSimGender('Macho')" id="sim-btn-m" class="h-7 text-[9px] bg-slate-800 border border-slate-700 text-slate-400 rounded-lg font-bold hover:bg-slate-750 transition-colors flex items-center justify-center gap-1">
+                                                <span>♂️ Macho</span>
+                                            </button>
+                                            <button onclick="setSimGender('Hembra')" id="sim-btn-h" class="h-7 text-[9px] bg-slate-800 border border-slate-700 text-slate-400 rounded-lg font-bold hover:bg-slate-750 transition-colors flex items-center justify-center gap-1">
+                                                <span>♀️ Hembra</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button onclick="activateSimIncubator()" id="sim-btn-activate" class="w-full h-8 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-brand-500/10">
+                                        Activar Incubadora 🔌
+                                    </button>
+                                    <p id="sim-hatch-error" class="text-[8px] text-rose-400 font-semibold text-center mt-0.5 hidden">⚠️ Por favor, llena todos los campos.</p>
                                 </div>
                             </div>
 
-                            <!-- Vector representation of Mochi inside screen -->
-                            <div class="relative flex-1 flex items-center justify-center p-4">
-                                <div class="relative group">
-                                    <!-- Crown over the egg -->
-                                    <div class="absolute -top-6 inset-x-0 mx-auto text-center text-2xl z-30 drop-shadow-md animate-bounce">👑</div>
-                                    <!-- Egg console custom PNG -->
-                                    <img src="app/src/main/res/drawable/img_mochi_icon_1779753318659.png" alt="Mochi Console" class="w-36 h-36 object-contain rounded-3xl shadow-xl border-2 border-indigo-500/20 transform hover:scale-105 transition-transform duration-300">
+                            <!-- SCREEN 2: ACTIVE PET DASHBOARD SCREEN (HIDDEN BY DEFAULT) -->
+                            <div id="sim-screen-dashboard" class="flex-1 flex flex-col justify-between py-1 hidden relative">
+                                
+                                <!-- Top Info Header -->
+                                <div class="flex items-center justify-between border-b border-white/5 pb-1.5 shrink-0">
+                                    <div class="flex items-center gap-1">
+                                        <span id="sim-badge-gender" class="text-[9px]">♂️</span>
+                                        <div>
+                                            <div class="flex items-center gap-1">
+                                                <h4 id="sim-pet-display-name" class="text-[9.5px] font-extrabold text-white leading-none">Mochi</h4>
+                                                <span class="text-[7px] text-slate-400 font-medium">by <span id="sim-display-caretaker" class="text-brand-300 font-bold"></span></span>
+                                            </div>
+                                            <p id="sim-level-stage" class="text-[7px] text-slate-500">Nivel 1 | Bebé 🍼</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button onclick="logoutSimUser()" class="text-[7.5px] text-rose-400 font-extrabold bg-rose-500/10 px-1.5 py-0.5 border border-rose-500/25 rounded hover:bg-rose-500/20 transition-all">Salir</button>
+                                        <div class="flex items-center gap-0.5 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-lg text-amber-400 font-extrabold text-[8px]">
+                                            <span>🪙</span> <span id="sim-coins-counter">120</span>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <!-- Realtime Stats Bars -->
+                                <div class="grid grid-cols-3 gap-1.5 py-1 bg-slate-950/40 border border-slate-800 rounded-xl px-1.5">
+                                    <div class="space-y-0.5">
+                                        <div class="flex items-center justify-between text-[7px] font-bold">
+                                            <span class="text-rose-400">😋 Hambre</span>
+                                            <span id="sim-val-hunger" class="text-slate-400">85%</span>
+                                        </div>
+                                        <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                            <div id="sim-bar-hunger" class="h-full bg-rose-500 rounded-full transition-all duration-300" style="width: 85%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-0.5">
+                                        <div class="flex items-center justify-between text-[7px] font-bold">
+                                            <span class="text-sky-400">💤 Energía</span>
+                                            <span id="sim-val-sleep" class="text-slate-400">85%</span>
+                                        </div>
+                                        <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                            <div id="sim-bar-sleep" class="h-full bg-sky-500 rounded-full transition-all duration-300" style="width: 85%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-0.5">
+                                        <div class="flex items-center justify-between text-[7px] font-bold">
+                                            <span class="text-amber-400">💖 Felicidad</span>
+                                            <span id="sim-val-happiness" class="text-slate-400">85%</span>
+                                        </div>
+                                        <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                            <div id="sim-bar-happiness" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width: 85%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Live Virtual Pet Screen -->
+                                <div id="sim-main-canvas" class="flex-1 bg-slate-950/50 border border-slate-850 rounded-2xl relative my-1.5 flex flex-col items-center justify-center p-2 overflow-hidden">
+                                    <!-- Floating Feed/Heart indicators -->
+                                    <div id="sim-floating-notif" class="absolute top-2 font-bold text-[10px] pointer-events-none transition-all duration-500 transform translate-y-3 opacity-0 text-amber-300 z-30"></div>
+
+                                    <!-- Light shadow glow (sleeping mode matches black opacity overlay) -->
+                                    <div id="sim-sleeping-overlay" class="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-10">
+                                        <span class="text-xl animate-bounce">💤 Zzz...</span>
+                                        <p class="text-[7px] text-slate-500 mt-0.5">Mochi está descansando</p>
+                                    </div>
+
+                                    <!-- Main Character Representation -->
+                                    <div id="sim-character-frame" class="relative flex flex-col items-center justify-center scale-90">
+                                        <!-- Hat Accessorized -->
+                                        <div id="sim-equipped-hat" class="absolute -top-7 text-xl z-20 transition-transform duration-300 transform hover:scale-110 drop-shadow-md hidden">👑</div>
+                                        
+                                        <!-- Pet main body -->
+                                        <div id="sim-pet-avatar" class="w-16 h-16 bg-brand-500 rounded-[45%_45%_50%_50%] border-4 border-purple-400 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300">
+                                            <!-- Blush and Eyes -->
+                                            <div class="flex gap-2.5 mb-1.5">
+                                                <div id="sim-eye-l" class="w-1.5 h-1.5 bg-slate-950 rounded-full animate-bounce"></div>
+                                                <div id="sim-eye-r" class="w-1.5 h-1.5 bg-slate-950 rounded-full animate-bounce"></div>
+                                            </div>
+                                            <!-- Mouth -->
+                                            <div id="sim-avatar-mouth" class="text-[10px] font-extrabold text-slate-950 leading-none">w</div>
+                                            <!-- Blush overlay -->
+                                            <div class="absolute inset-x-2 bottom-5 flex justify-between px-0.5 opacity-60">
+                                                <div class="w-1.5 h-0.5 bg-rose-400 rounded-full"></div>
+                                                <div class="w-1.5 h-0.5 bg-rose-400 rounded-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action alerts & logs ticker -->
+                                    <div class="absolute bottom-1.5 inset-x-1.5 px-2 py-0.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[7px] text-slate-400 font-medium truncate" id="sim-ticker-msg">
+                                        ✨ ¡Ha nacido tu mascota virtual Mochi!
+                                    </div>
+                                </div>
+
+                                <!-- Bottom Care Dash Actions -->
+                                <div id="sim-care-buttons" class="grid grid-cols-4 gap-1 py-1">
+                                    <button onclick="triggerSimCare('alimentar')" class="h-8 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[9px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
+                                        <span>🍪</span>
+                                        <span>Alimentar</span>
+                                    </button>
+                                    <button onclick="triggerSimCare('acariciar')" class="h-8 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl text-[9px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
+                                        <span>❤️</span>
+                                        <span>Acariciar</span>
+                                    </button>
+                                    <button onclick="triggerSimCare('dormir')" class="h-8 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-[9px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
+                                        <span id="sim-btn-sleep-icon">🛌</span>
+                                        <span id="sim-btn-sleep-text">Dormir</span>
+                                    </button>
+                                    <button onclick="triggerSimCare('limpiar')" class="h-8 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
+                                        <span>🧼</span>
+                                        <span>Limpiar</span>
+                                    </button>
+                                </div>
+
+                                <!-- Sub Navigation: Dashboard subpages -->
+                                <div class="grid grid-cols-3 gap-1 border-t border-white/5 pt-1.5 mt-0.5">
+                                    <button onclick="switchSimSubView('main')" id="sim-sub-main" class="h-6.5 text-[8px] font-bold text-brand-300 bg-brand-500/10 border border-brand-500/20 rounded-lg flex items-center justify-center gap-1">
+                                        <span>🏡</span> <span>Mochi</span>
+                                    </button>
+                                    <button onclick="switchSimSubView('boutique')" id="sim-sub-boutique" class="h-6.5 text-[8px] font-bold text-slate-400 hover:text-slate-200 bg-slate-950/40 border border-slate-800 rounded-lg flex items-center justify-center gap-1">
+                                        <span>🛍️</span> <span>Tienda</span>
+                                    </button>
+                                    <button onclick="switchSimSubView('minigame')" id="sim-sub-minigame" class="h-6.5 text-[8px] font-bold text-slate-400 hover:text-slate-200 bg-slate-950/40 border border-slate-800 rounded-lg flex items-center justify-center gap-1">
+                                        <span>🎲</span> <span>Caja</span>
+                                    </button>
+                                </div>
+
+                                <!-- SUB-PAGES MODAL WRAPPER (tienda & minijuegos sim overlay) -->
+                                <div id="sim-sub-view-overlay" class="absolute inset-x-0 bottom-10 top-10 bg-slate-900 border border-slate-800 rounded-t-2xl p-2.5 flex flex-col justify-between hidden z-20">
+                                    <!-- Dynamic Boutique Body -->
+                                    <div id="sim-shop-content" class="flex-1 flex flex-col justify-between hidden">
+                                        <div class="space-y-1.5">
+                                            <div class="flex items-center justify-between border-b border-white/5 pb-0.5">
+                                                <h5 class="text-[9px] font-extrabold text-white">🛍️ Vestir & Accesorios</h5>
+                                                <button onclick="switchSimSubView('main')" class="text-[7.5px] text-slate-400 font-bold hover:text-white bg-slate-850 px-1 py-0.5 rounded">Cerrar</button>
+                                            </div>
+                                            <div class="space-y-1 max-h-36 overflow-y-auto pr-0.5">
+                                                <!-- Shop row 1 -->
+                                                <div class="flex items-center justify-between bg-slate-950/50 p-1 rounded-lg border border-slate-800">
+                                                    <div class="flex items-center gap-1">
+                                                        <span class="text-xs">👑</span>
+                                                        <span class="text-[8px] font-bold text-white">Corona Rey</span>
+                                                    </div>
+                                                    <button onclick="equipSimAccessory('👑')" class="text-[7.5px] font-black bg-brand-500 hover:bg-brand-400 text-slate-950 px-1.5 py-0.5 rounded">Equipar</button>
+                                                </div>
+                                                <!-- Shop row 2 -->
+                                                <div class="flex items-center justify-between bg-slate-950/50 p-1 rounded-lg border border-slate-800">
+                                                    <div class="flex items-center gap-1">
+                                                        <span class="text-xs">😎</span>
+                                                        <span class="text-[8px] font-bold text-white">Lentes Sol</span>
+                                                    </div>
+                                                    <button onclick="equipSimAccessory('😎')" class="text-[7.5px] font-black bg-brand-500 hover:bg-brand-400 text-slate-950 px-1.5 py-0.5 rounded">Equipar</button>
+                                                </div>
+                                                <!-- Shop row 3 -->
+                                                <div class="flex items-center justify-between bg-slate-950/50 p-1 rounded-lg border border-slate-800">
+                                                    <div class="flex items-center gap-1">
+                                                        <span class="text-xs">🎩</span>
+                                                        <span class="text-[8px] font-bold text-white">Sombrero Mazo</span>
+                                                    </div>
+                                                    <button onclick="equipSimAccessory('🎩')" class="text-[7.5px] font-black bg-brand-500 hover:bg-brand-400 text-slate-950 px-1.5 py-0.5 rounded">Equipar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button onclick="equipSimAccessory('none')" class="w-full text-center py-1 text-[8px] bg-slate-800 border border-slate-750 text-slate-400 rounded-lg hover:text-white mt-1">Quitar accesorios</button>
+                                    </div>
+
+                                    <!-- Dynamic Minigame Body -->
+                                    <div id="sim-minigame-content" class="flex-1 flex flex-col justify-between hidden">
+                                        <div class="space-y-1.5">
+                                            <div class="flex items-center justify-between border-b border-white/5 pb-0.5">
+                                                <h5 class="text-[9px] font-extrabold text-white">📦 Cajas Sorpresa</h5>
+                                                <button onclick="switchSimSubView('main')" class="text-[7.5px] text-slate-400 font-bold hover:text-white bg-slate-850 px-1 py-0.5 rounded">Cerrar</button>
+                                            </div>
+                                            <p class="text-[7.5px] text-slate-400 leading-normal mb-0.5">¡Elige un cofre para ganar monedas y felicidad!</p>
+                                            
+                                            <div class="grid grid-cols-3 gap-1.5 py-2">
+                                                <button onclick="playSimGame(1)" class="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center hover:bg-indigo-950/40 hover:border-brand-500/25 active:scale-95 transition-all">
+                                                    <span class="text-base">📦</span>
+                                                    <p class="text-[7px] text-slate-500 font-bold mt-0.5">Caja 1</p>
+                                                </button>
+                                                <button onclick="playSimGame(2)" class="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center hover:bg-indigo-950/40 hover:border-brand-500/25 active:scale-95 transition-all">
+                                                    <span class="text-base">📦</span>
+                                                    <p class="text-[7px] text-slate-500 font-bold mt-0.5">Caja 2</p>
+                                                </button>
+                                                <button onclick="playSimGame(3)" class="bg-slate-950/60 p-2 rounded-xl border border-slate-800 text-center hover:bg-indigo-950/40 hover:border-brand-500/25 active:scale-95 transition-all">
+                                                    <span class="text-base">📦</span>
+                                                    <p class="text-[7px] text-slate-500 font-bold mt-0.5">Caja 3</p>
+                                                </button>
+                                            </div>
+
+                                            <div id="sim-game-result" class="text-center p-1.5 rounded-lg bg-slate-950 hidden leading-tight">
+                                                <span id="sim-game-result-anim" class="text-[10px]">🎉</span>
+                                                <p id="sim-game-result-text" class="text-[7.5px] font-bold text-brand-300 mt-0.5"></p>
+                                            </div>
+                                        </div>
+                                        <p class="text-[6.5px] text-slate-500 text-center">Inspirado en la mecánica del APK.</p>
+                                    </div>
+                                </div>
+
                             </div>
 
-                            <!-- Buttons frame mock -->
-                            <div class="grid grid-cols-2 gap-2 z-10">
-                                <div class="bg-indigo-950/40 border border-purple-500/30 rounded-xl p-2.5 text-center text-[10px] font-bold text-white">
-                                    🍪 Alimentar
-                                </div>
-                                <div class="bg-indigo-950/40 border border-sky-500/30 rounded-xl p-2.5 text-center text-[10px] font-bold text-white">
-                                    ❤️ Acariciar
-                                </div>
-                            </div>
+                        </div>
+
+                        <!-- Home Bottom Bar Pill Simulation -->
+                        <div class="absolute bottom-1 inset-x-0 flex justify-center items-center pointer-events-none z-50">
+                            <div class="w-16 h-1 bg-slate-700 rounded-full mb-0.5"></div>
                         </div>
                     </div>
                 </div>
@@ -255,341 +526,7 @@
         </div>
     </section>
 
-    <!-- Interactive App Preview Simulator Section -->
-    <section id="demo-interactivo" class="py-24 bg-gradient-to-b from-brand-950/20 via-indigo-950/30 to-brand-950/10 border-t border-white/5 relative overflow-hidden">
-        <div class="absolute -top-40 -right-40 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]"></div>
-        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px]"></div>
-        
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center max-w-3xl mx-auto space-y-4 mb-16">
-                <span class="text-xs font-bold text-brand-300 uppercase tracking-widest block font-display">Simulación en Vivo</span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                    Prueba el App de Mochi Ahora Mismo
-                </h2>
-                <p class="text-slate-400 text-sm">
-                    Vive la experiencia completa de nuestro simulador de mascota virtual directamente en tu navegador. Elige el sexo de tu mascota, hazlo eclosionar de su huevo y asiste a sus necesidades básicas.
-                </p>
-            </div>
-
-            <div class="grid lg:grid-cols-12 gap-12 items-center">
-                
-                <!-- Simulator Left Description / Instructions -->
-                <div class="lg:col-span-5 space-y-8 text-center lg:text-left">
-                    <div class="space-y-4">
-                        <h3 class="text-2xl font-bold text-white">Prueba las pantallas principales</h3>
-                        <p class="text-slate-400 text-sm leading-relaxed">
-                            Esta versión interactiva simula detalladamente el flujo real de la app en Kotlin: desde la incubación del huevo con selección de género, pasando por los cuidados vitales diarios, hasta la boutique y minijuegos con recompensas integradas de monedas.
-                        </p>
-                    </div>
-
-                    <!-- Steps for Demo -->
-                    <div class="space-y-4 text-left">
-                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                            <span class="text-xl shrink-0">1️⃣</span>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Elige Nombre y Sexo</h4>
-                                <p class="text-xs text-slate-500 mt-1">Configura su género (Macho o Hembra) y dale un nombre para su acta de nacimiento digital.</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                            <span class="text-xl shrink-0">2️⃣</span>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Eclosiona el Huevo 🐣</h4>
-                                <p class="text-xs text-slate-500 mt-1">Activa la incubadora inteligente del laboratorio y toca el huevo continuamente para nacer a Mochi!</p>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                            <span class="text-xl shrink-0">3️⃣</span>
-                            <div>
-                                <h4 class="text-sm font-bold text-white">Cuidados y Personalización 👒</h4>
-                                <p class="text-xs text-slate-500 mt-1">Alimenta, mima, limpia o viste a tu mascota con elegantes prendas en el armario integrado.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Phone Simulator Mockup Frame -->
-                <div class="lg:col-span-7 flex justify-center relative">
-                    <!-- Glow -->
-                    <div class="absolute inset-0 bg-brand-500/10 rounded-full filter blur-[100px] w-80 h-80 mx-auto my-auto pointer-events-none"></div>
-
-                    <!-- Android Device Container -->
-                    <div class="w-80 h-[640px] border-[10px] border-slate-800 bg-slate-950 rounded-[44px] shadow-2xl overflow-hidden relative flex flex-col justify-between">
-                        <!-- Top Speaker / Camera Notch -->
-                        <div class="absolute top-0 inset-x-0 h-6 bg-slate-800 rounded-b-2xl z-50 flex justify-center items-center">
-                            <div class="w-20 h-3.5 bg-slate-950 rounded-full"></div>
-                        </div>
-
-                        <!-- Main Screen UI -->
-                        <div class="flex-1 flex flex-col justify-between bg-slate-900 pt-8 pb-3 px-4 relative overflow-hidden select-none">
-                            
-                            <!-- SCREEN 1: HATCHING / INCUBATION SCREEN -->
-                            <div id="sim-screen-hatching" class="flex-1 flex flex-col justify-between py-2">
-                                <div class="text-center space-y-1">
-                                    <h4 class="text-amber-400 font-extrabold text-xs tracking-wider uppercase font-display">🔋 Laboratorio de Mochi</h4>
-                                    <p class="text-[10px] text-slate-500">Configura la identidad y toca para abrir</p>
-                                </div>
-
-                                <!-- Egg Animation area -->
-                                <div class="relative py-4 flex flex-col items-center justify-center">
-                                    <!-- Flying sparks -->
-                                    <div id="sim-hatch-sparkles" class="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                        <span class="absolute text-yellow-300 text-lg opacity-0 transition-all duration-300 transform" style="animation: floatUp 1.5s infinite">✨</span>
-                                    </div>
-
-                                    <!-- Egg Frame -->
-                                    <div id="sim-interactive-egg" class="w-32 h-36 bg-gradient-to-b from-sky-400 to-sky-600 rounded-t-full rounded-b-[75%] shadow-xl shadow-sky-500/10 flex flex-col items-center justify-end pb-8 relative cursor-pointer border-2 border-sky-300 hover:scale-105 transition-all duration-200">
-                                        <!-- Spots -->
-                                        <div class="w-4 h-4 bg-amber-300 rounded-full absolute top-8 left-6 opacity-80"></div>
-                                        <div class="w-5 h-5 bg-purple-300 rounded-full absolute top-14 right-5 opacity-80"></div>
-                                        <div class="w-3.5 h-3.5 bg-emerald-300 rounded-full absolute bottom-12 left-10 opacity-80"></div>
-                                        
-                                        <!-- Cute anime closed eyes -->
-                                        <div class="flex gap-4 mb-4">
-                                            <div class="text-sm font-bold text-teal-950 leading-none">⌒</div>
-                                            <div class="text-sm font-bold text-teal-950 leading-none">⌒</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Tap alert badge -->
-                                    <div id="sim-hatch-pill" class="mt-4 px-3 py-1 bg-slate-950/80 border border-brand-500/20 rounded-full text-[9px] text-slate-400 font-bold hidden">
-                                        🥚 ¡Toca el huevo! Taps restantes: <span id="sim-hatch-counter" class="text-brand-300 font-extrabold">5</span>
-                                    </div>
-                                    <div id="sim-hatch-pill-inactive" class="mt-4 px-3 py-1 bg-slate-950/50 border border-slate-700/30 rounded-full text-[9px] text-slate-500">
-                                        💤 Configura el sexo abajo para comenzar
-                                    </div>
-                                </div>
-
-                                <!-- Form inputs -->
-                                <div id="sim-hatching-form" class="space-y-3 bg-slate-950/60 border border-slate-850 p-3 rounded-2xl">
-                                    <div class="space-y-1">
-                                        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Nombre de tu Mochi</label>
-                                        <input type="text" id="sim-input-name" placeholder="Ej: Chobi" class="w-full h-8 text-[11px] bg-slate-900 border border-slate-700 rounded-lg px-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-brand-400">
-                                    </div>
-                                    <div class="space-y-1.5">
-                                        <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Selecciona Sexo ♂️ ♀️</label>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <button onclick="setSimGender('Macho')" id="sim-btn-m" class="h-8 text-[10px] bg-slate-800 border border-slate-700 text-slate-400 rounded-lg font-bold hover:bg-slate-750 transition-colors flex items-center justify-center gap-1">
-                                                <span>♂️ Macho</span>
-                                            </button>
-                                            <button onclick="setSimGender('Hembra')" id="sim-btn-h" class="h-8 text-[10px] bg-slate-800 border border-slate-700 text-slate-400 rounded-lg font-bold hover:bg-slate-750 transition-colors flex items-center justify-center gap-1">
-                                                <span>♀️ Hembra</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <button onclick="activateSimIncubator()" id="sim-btn-activate" class="w-full h-9 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-brand-500/10">
-                                        Activar Incubadora 🔌
-                                    </button>
-                                    <p id="sim-hatch-error" class="text-[9px] text-rose-400 font-semibold text-center mt-1 hidden">⚠️ Por favor, llena todos los campos.</p>
-                                </div>
-                            </div>
-
-                            <!-- SCREEN 2: ACTIVE PET DASHBOARD SCREEN (HIDDEN BY DEFAULT) -->
-                            <div id="sim-screen-dashboard" class="flex-1 flex flex-col justify-between py-1 hidden relative">
-                                
-                                <!-- Top Info Header -->
-                                <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                                    <div class="flex items-center gap-1.5">
-                                        <span id="sim-badge-gender" class="text-xs">♂️</span>
-                                        <div>
-                                            <h4 id="sim-pet-display-name" class="text-[11px] font-extrabold text-white leading-none">Mochi</h4>
-                                            <p id="sim-level-stage" class="text-[8px] text-slate-500">Nivel 1 | Bebé 🍼</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-1 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-lg text-amber-400 font-extrabold text-[9px]">
-                                        <span>🪙</span> <span id="sim-coins-counter">120</span>
-                                    </div>
-                                </div>
-
-                                <!-- Realtime Stats Bars -->
-                                <div class="grid grid-cols-3 gap-2 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl px-2">
-                                    <div class="space-y-1">
-                                        <div class="flex items-center justify-between text-[8px] font-bold">
-                                            <span class="text-rose-400">😋 Hambre</span>
-                                            <span id="sim-val-hunger" class="text-slate-400">85%</span>
-                                        </div>
-                                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                            <div id="sim-bar-hunger" class="h-full bg-rose-500 rounded-full transition-all duration-300" style="width: 85%"></div>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <div class="flex items-center justify-between text-[8px] font-bold">
-                                            <span class="text-sky-400">💤 Energía</span>
-                                            <span id="sim-val-sleep" class="text-slate-400">85%</span>
-                                        </div>
-                                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                            <div id="sim-bar-sleep" class="h-full bg-sky-500 rounded-full transition-all duration-300" style="width: 85%"></div>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <div class="flex items-center justify-between text-[8px] font-bold">
-                                            <span class="text-amber-400">💖 Felicidad</span>
-                                            <span id="sim-val-happiness" class="text-slate-400">85%</span>
-                                        </div>
-                                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                            <div id="sim-bar-happiness" class="h-full bg-amber-400 rounded-full transition-all duration-300" style="width: 85%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Dynamic Live Virtual Pet Screen -->
-                                <div id="sim-main-canvas" class="flex-1 bg-slate-950/50 border border-slate-850 rounded-2xl relative my-2 flex flex-col items-center justify-center p-3 overflow-hidden">
-                                    <!-- Floating Feed/Heart indicators -->
-                                    <div id="sim-floating-notif" class="absolute top-4 font-bold text-xs pointer-events-none transition-all duration-500 transform translate-y-3 opacity-0 text-amber-300 z-30"></div>
-
-                                    <!-- Light shadow glow (sleeping mode matches black opacity overlay) -->
-                                    <div id="sim-sleeping-overlay" class="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-10">
-                                        <span class="text-2xl animate-bounce">💤 Zzz...</span>
-                                        <p class="text-[8px] text-slate-500 mt-1">Mochi está descansando</p>
-                                    </div>
-
-                                    <!-- Main Character Representation -->
-                                    <div id="sim-character-frame" class="relative flex flex-col items-center justify-center">
-                                        <!-- Hat Accessorized -->
-                                        <div id="sim-equipped-hat" class="absolute -top-7 text-2xl z-20 transition-transform duration-300 transform hover:scale-110 drop-shadow-md hidden">👑</div>
-                                        
-                                        <!-- Pet main body -->
-                                        <div id="sim-pet-avatar" class="w-24 h-24 bg-brand-500 rounded-[45%_45%_50%_50%] border-4 border-purple-400 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300">
-                                            <!-- Blush and Eyes -->
-                                            <div class="flex gap-4 mb-2">
-                                                <div id="sim-eye-l" class="w-2 h-2 bg-slate-950 rounded-full animate-bounce"></div>
-                                                <div id="sim-eye-r" class="w-2 h-2 bg-slate-950 rounded-full animate-bounce"></div>
-                                            </div>
-                                            <!-- Mouth -->
-                                            <div id="sim-avatar-mouth" class="text-xs font-extrabold text-slate-950 leading-none">w</div>
-                                            <!-- Blush overlay -->
-                                            <div class="absolute inset-x-3 bottom-8 flex justify-between px-1 opacity-60">
-                                                <div class="w-2 h-1 bg-rose-400 rounded-full"></div>
-                                                <div class="w-2 h-1 bg-rose-400 rounded-full"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Action alerts & logs ticker -->
-                                    <div class="absolute bottom-2 inset-x-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-[8px] text-slate-400 font-medium truncate" id="sim-ticker-msg">
-                                        ✨ Bienvenido a la vida de tu mascota virtual Mochi!
-                                    </div>
-                                </div>
-
-                                <!-- Bottom Care Dash Actions -->
-                                <div id="sim-care-buttons" class="grid grid-cols-4 gap-1.5 py-1.5">
-                                    <button onclick="triggerSimCare('alimentar')" class="h-9 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
-                                        <span>🍪</span>
-                                        <span>Alimentar</span>
-                                    </button>
-                                    <button onclick="triggerSimCare('acariciar')" class="h-9 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
-                                        <span>❤️</span>
-                                        <span>Acariciar</span>
-                                    </button>
-                                    <button onclick="triggerSimCare('dormir')" class="h-9 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
-                                        <span id="sim-btn-sleep-icon">🛌</span>
-                                        <span id="sim-btn-sleep-text">Dormir</span>
-                                    </button>
-                                    <button onclick="triggerSimCare('limpiar')" class="h-9 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-0.5 transition-colors">
-                                        <span>🧼</span>
-                                        <span>Limpiar</span>
-                                    </button>
-                                </div>
-
-                                <!-- Sub Navigation: Dashboard subpages -->
-                                <div class="grid grid-cols-3 gap-1 border-t border-white/5 pt-2 mt-1">
-                                    <button onclick="switchSimSubView('main')" id="sim-sub-main" class="h-7 text-[9px] font-bold text-brand-300 bg-brand-500/10 border border-brand-500/20 rounded-lg flex items-center justify-center gap-1">
-                                        <span>🏡</span> <span>Mochi</span>
-                                    </button>
-                                    <button onclick="switchSimSubView('boutique')" id="sim-sub-boutique" class="h-7 text-[9px] font-bold text-slate-400 hover:text-slate-200 bg-slate-950/40 border border-slate-800 rounded-lg flex items-center justify-center gap-1">
-                                        <span>🛍️</span> <span>Tienda</span>
-                                    </button>
-                                    <button onclick="switchSimSubView('minigame')" id="sim-sub-minigame" class="h-7 text-[9px] font-bold text-slate-400 hover:text-slate-200 bg-slate-950/40 border border-slate-800 rounded-lg flex items-center justify-center gap-1">
-                                        <span>🎲</span> <span>Caja</span>
-                                    </button>
-                                </div>
-
-                                <!-- SUB-PAGES MODAL WRAPPER (tienda & minijuegos sim overlay) -->
-                                <div id="sim-sub-view-overlay" class="absolute inset-x-0 bottom-12 top-11 bg-slate-900 border border-slate-800 rounded-t-2xl p-3 flex flex-col justify-between hidden z-20">
-                                    <!-- Dynamic Boutique Body -->
-                                    <div id="sim-shop-content" class="flex-1 flex flex-col justify-between hidden">
-                                        <div class="space-y-2">
-                                            <div class="flex items-center justify-between border-b border-white/5 pb-1">
-                                                <h5 class="text-[10px] font-extrabold text-white">🛍️ Vestir & Accesorios</h5>
-                                                <button onclick="switchSimSubView('main')" class="text-[8px] text-slate-400 font-bold hover:text-white bg-slate-850 px-1.5 py-0.5 rounded">Cerrar</button>
-                                            </div>
-                                            <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                                                <!-- Shop row 1 -->
-                                                <div class="flex items-center justify-between bg-slate-950/50 p-1.5 rounded-lg border border-slate-800">
-                                                    <div class="flex items-center gap-1.5">
-                                                        <span class="text-xs">👑</span>
-                                                        <span class="text-[9px] font-bold text-white">Corona de Rey</span>
-                                                    </div>
-                                                    <button onclick="equipSimAccessory('👑')" class="text-[8px] font-black bg-brand-500 hover:bg-brand-400 text-slate-950 px-2 py-1 rounded">Equipar</button>
-                                                </div>
-                                                <!-- Shop row 2 -->
-                                                <div class="flex items-center justify-between bg-slate-950/50 p-1.5 rounded-lg border border-slate-800">
-                                                    <div class="flex items-center gap-1.5">
-                                                        <span class="text-xs">😎</span>
-                                                        <span class="text-[9px] font-bold text-white">Lentes de Sol</span>
-                                                    </div>
-                                                    <button onclick="equipSimAccessory('😎')" class="text-[8px] font-black bg-brand-500 hover:bg-brand-400 text-slate-950 px-2 py-1 rounded">Equipar</button>
-                                                </div>
-                                                <!-- Shop row 3 -->
-                                                <div class="flex items-center justify-between bg-slate-950/50 p-1.5 rounded-lg border border-slate-800">
-                                                    <div class="flex items-center gap-1.5">
-                                                        <span class="text-xs">🎩</span>
-                                                        <span class="text-[9px] font-bold text-white">Sombrero Mazo</span>
-                                                    </div>
-                                                    <button onclick="equipSimAccessory('🎩')" class="text-[8px] font-black bg-brand-500 hover:bg-brand-400 text-slate-950 px-2 py-1 rounded">Equipar</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button onclick="equipSimAccessory('none')" class="w-full text-center py-1.5 text-[9px] bg-slate-800 border border-slate-750 text-slate-400 rounded-lg hover:text-white">Quitar accesorios</button>
-                                    </div>
-
-                                    <!-- Dynamic Minigame Body -->
-                                    <div id="sim-minigame-content" class="flex-1 flex flex-col justify-between hidden">
-                                        <div class="space-y-2">
-                                            <div class="flex items-center justify-between border-b border-white/5 pb-1">
-                                                <h5 class="text-[10px] font-extrabold text-white">📦 Cajas Sorpresa</h5>
-                                                <button onclick="switchSimSubView('main')" class="text-[8px] text-slate-400 font-bold hover:text-white bg-slate-850 px-1.5 py-0.5 rounded">Cerrar</button>
-                                            </div>
-                                            <p class="text-[8px] text-slate-400 leading-normal mb-1">¡Elige un cofre de la fortuna para ganar monedas extras y sumarle felicidad a tu Mochi!</p>
-                                            
-                                            <div class="grid grid-cols-3 gap-2 py-4">
-                                                <button onclick="playSimGame(1)" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center hover:bg-indigo-950/40 hover:border-brand-500/25 active:scale-95 transition-all">
-                                                    <span class="text-lg">📦</span>
-                                                    <p class="text-[7px] text-slate-500 font-bold mt-1">Caja 1</p>
-                                                </button>
-                                                <button onclick="playSimGame(2)" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center hover:bg-indigo-950/40 hover:border-brand-500/25 active:scale-95 transition-all">
-                                                    <span class="text-lg">📦</span>
-                                                    <p class="text-[7px] text-slate-500 font-bold mt-1">Caja 2</p>
-                                                </button>
-                                                <button onclick="playSimGame(3)" class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-center hover:bg-indigo-950/40 hover:border-brand-500/25 active:scale-95 transition-all">
-                                                    <span class="text-lg">📦</span>
-                                                    <p class="text-[7px] text-slate-500 font-bold mt-1">Caja 3</p>
-                                                </button>
-                                            </div>
-
-                                            <div id="sim-game-result" class="text-center p-2 rounded-lg bg-slate-950 hidden leading-tight">
-                                                <span id="sim-game-result-anim" class="text-xs">🎉</span>
-                                                <p id="sim-game-result-text" class="text-[8px] font-bold text-brand-300 mt-1"></p>
-                                            </div>
-                                        </div>
-                                        <p class="text-[7px] text-slate-500 text-center">Inspirado en la mecánica original del APK.</p>
-                                    </div>
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                        <!-- Home Bottom Bar Pill Simulation -->
-                        <div class="absolute bottom-1 inset-x-0 flex justify-center items-center pointer-events-none z-50">
-                            <div class="w-24 h-1 bg-slate-700 rounded-full mb-1"></div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </section>
+    <!-- The live interactive virtual pet simulator is now featured in the hero section above for maximum engagement! -->
 
     <!-- Branching Evolutions Section -->
     <section id="evolucion" class="py-20 relative overflow-hidden">
@@ -782,6 +719,29 @@
 
     <!-- Reactivity Script for Interactive Preview Emulator -->
     <script>
+        // Simulated Auth Database
+        let simUsersList = [
+            { 
+                email: "demo@correo.com", 
+                username: "TutorDemo", 
+                password: "123", 
+                petHatched: true, 
+                petState: {
+                    petName: "Mochito",
+                    petGender: "Macho",
+                    coins: 150,
+                    hunger: 90,
+                    sleep: 95,
+                    happiness: 90,
+                    level: 1,
+                    stage: "Bebé 🍼",
+                    equippedAccessory: "none"
+                }
+            }
+        ];
+        let simCurrentUser = null;
+        let simIsSignUp = false;
+
         // Simulation State
         let simPetName = "";
         let simPetGender = "Ninguno"; 
@@ -797,6 +757,266 @@
         let simStage = "Bebé 🍼";
         let simEquippedAccessory = "none";
         let simIsSleepingActive = false;
+
+        // Multi-user Auth simulation handlers
+        function toggleSimAuthTab(signUp) {
+            simIsSignUp = signUp;
+            playBeep(450, 0.05);
+
+            const tabLogin = document.getElementById("sim-auth-tab-login");
+            const tabRegister = document.getElementById("sim-auth-tab-register");
+            const usernameGroup = document.getElementById("sim-auth-username-group");
+            const confirmGroup = document.getElementById("sim-auth-confirm-group");
+            const submitBtn = document.getElementById("sim-btn-auth-submit");
+            const errEl = document.getElementById("sim-auth-error");
+            const succEl = document.getElementById("sim-auth-success");
+
+            errEl.classList.add("hidden");
+            succEl.classList.add("hidden");
+
+            if (signUp) {
+                tabRegister.className = "py-1 text-[8px] font-bold rounded-md bg-brand-500 text-slate-950 transition-all leading-none";
+                tabLogin.className = "py-1 text-[8px] font-bold rounded-md text-slate-400 hover:text-slate-200 transition-all leading-none";
+                usernameGroup.classList.remove("hidden");
+                confirmGroup.classList.remove("hidden");
+                submitBtn.innerText = "CREAR CUENTA 🧪";
+            } else {
+                tabLogin.className = "py-1 text-[8px] font-bold rounded-md bg-brand-500 text-slate-950 transition-all leading-none";
+                tabRegister.className = "py-1 text-[8px] font-bold rounded-md text-slate-400 hover:text-slate-200 transition-all leading-none";
+                usernameGroup.classList.add("hidden");
+                confirmGroup.classList.add("hidden");
+                submitBtn.innerText = "ACCEDER 🚀";
+            }
+        }
+
+        function submitSimAuth() {
+            const email = document.getElementById("sim-auth-email").value.trim();
+            const password = document.getElementById("sim-auth-password").value;
+            const errEl = document.getElementById("sim-auth-error");
+            const succEl = document.getElementById("sim-auth-success");
+
+            errEl.classList.add("hidden");
+            succEl.classList.add("hidden");
+
+            if (!email || !password) {
+                playBeep(250, 0.15, "square");
+                errEl.innerText = "⚠️ Por favor, llena todos los campos.";
+                errEl.classList.remove("hidden");
+                return;
+            }
+
+            if (simIsSignUp) {
+                const username = document.getElementById("sim-auth-username").value.trim();
+                const confirmPassword = document.getElementById("sim-auth-confirm").value;
+
+                if (!username || !confirmPassword) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ Por favor, llena todos los campos.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                if (username.length < 3) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ El nombre debe tener al menos 3 caracteres.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                if (!email.includes("@")) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ Ingresa un correo electrónico válido.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                if (password.length < 4) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ La contraseña debe tener al menos 4 caracteres.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ Las contraseñas no coinciden.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                // Check duplicates
+                const emailExists = simUsersList.some(u => u.email.toLowerCase() === email.toLowerCase());
+                if (emailExists) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ El correo ya está registrado.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                const userExists = simUsersList.some(u => u.username.toLowerCase() === username.toLowerCase());
+                if (userExists) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ El nombre de usuario ya está registrado.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                // Success registration
+                const newUser = {
+                    email,
+                    username,
+                    password,
+                    petHatched: false,
+                    petState: null
+                };
+                simUsersList.push(newUser);
+                simCurrentUser = newUser;
+
+                playBeep(1000, 0.25, "sine");
+                succEl.innerText = "¡Registro exitoso! Creando hatchery...";
+                succEl.classList.remove("hidden");
+
+                setTimeout(() => {
+                    loadUserSimulationSession();
+                }, 800);
+
+            } else {
+                // Login Flow
+                const user = simUsersList.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+                if (!user) {
+                    playBeep(250, 0.15, "square");
+                    errEl.innerText = "⚠️ Correo o contraseña incorrectos.";
+                    errEl.classList.remove("hidden");
+                    return;
+                }
+
+                simCurrentUser = user;
+                playBeep(900, 0.15, "sine");
+                succEl.innerText = "¡Acceso concedido! Cargando sesión...";
+                succEl.classList.remove("hidden");
+
+                setTimeout(() => {
+                    loadUserSimulationSession();
+                }, 800);
+            }
+        }
+
+        function loadUserSimulationSession() {
+            if (!simCurrentUser) return;
+
+            // Update visible display of caretaker username
+            document.getElementById("sim-display-caretaker").innerText = simCurrentUser.username;
+
+            // Clear inputs
+            document.getElementById("sim-auth-email").value = "";
+            document.getElementById("sim-auth-password").value = "";
+            if (document.getElementById("sim-auth-username")) document.getElementById("sim-auth-username").value = "";
+            if (document.getElementById("sim-auth-confirm")) document.getElementById("sim-auth-confirm").value = "";
+
+            // Hide auth screen
+            document.getElementById("sim-screen-auth").classList.add("hidden");
+
+            if (simCurrentUser.petHatched && simCurrentUser.petState) {
+                // Restore their pet
+                const p = simCurrentUser.petState;
+                simPetName = p.petName;
+                simPetGender = p.petGender;
+                simCoins = p.coins;
+                simHunger = p.hunger;
+                simSleep = p.sleep;
+                simHappiness = p.happiness;
+                simLevel = p.level;
+                simStage = p.stage;
+                simEquippedAccessory = p.equippedAccessory;
+                simIsHatched = true;
+
+                // Setup visual details
+                document.getElementById("sim-pet-display-name").innerText = simPetName;
+                document.getElementById("sim-badge-gender").innerText = simPetGender === 'Macho' ? "♂️ Macho" : "♀️ Hembra";
+                document.getElementById("sim-level-stage").innerText = `Nivel ${simLevel} | ${simStage}`;
+                
+                // Color matching
+                if (simPetGender === 'Macho') {
+                    document.getElementById("sim-pet-avatar").className = "w-16 h-16 bg-sky-400 rounded-[45%_45%_50%_50%] border-4 border-sky-600 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300";
+                } else {
+                    document.getElementById("sim-pet-avatar").className = "w-16 h-16 bg-pink-400 rounded-[45%_45%_50%_50%] border-4 border-pink-600 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300";
+                }
+
+                // Equip accessory if any
+                const hatEl = document.getElementById("sim-equipped-hat");
+                if (simEquippedAccessory !== 'none') {
+                    hatEl.innerText = simEquippedAccessory;
+                    hatEl.classList.remove("hidden");
+                } else {
+                    hatEl.classList.add("hidden");
+                }
+
+                updateSimStats();
+                document.getElementById("sim-screen-dashboard").classList.remove("hidden");
+                showSimMessage(`Welcome back, ${simCurrentUser.username}! Tu pet ${simPetName} te esperaba.`);
+            } else {
+                // Hatching is required!
+                simIsHatched = false;
+                simEggActivated = false;
+                simEggTaps = 5;
+                document.getElementById("sim-interactive-egg").onclick = null;
+                document.getElementById("sim-hatch-counter").innerText = "5";
+
+                // Toggle elements back
+                document.getElementById("sim-hatch-pill-inactive").classList.remove("hidden");
+                document.getElementById("sim-hatch-pill").classList.add("hidden");
+                
+                const btnActivate = document.getElementById("sim-btn-activate");
+                btnActivate.innerText = "Activar Incubadora 🔌";
+                btnActivate.className = "w-full h-8 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-brand-500/10";
+                btnActivate.disabled = false;
+
+                const nameInput = document.getElementById("sim-input-name");
+                nameInput.value = "";
+
+                // Reset selected gender buttons
+                document.getElementById("sim-btn-m").className = "h-7 text-[9px] bg-slate-800 border border-slate-700 text-slate-400 rounded-lg font-bold hover:bg-slate-750 transition-colors flex items-center justify-center gap-1";
+                document.getElementById("sim-btn-h").className = "h-7 text-[9px] bg-slate-800 border border-slate-700 text-slate-400 rounded-lg font-bold hover:bg-slate-750 transition-colors flex items-center justify-center gap-1";
+                simPetGender = "Ninguno";
+
+                document.getElementById("sim-screen-hatching").classList.remove("hidden");
+                showSimMessage(`⚡ Hola ${simCurrentUser.username}, ¡activa la incubadora para tu primer huevo!`);
+            }
+        }
+
+        function saveCurrentUserState() {
+            if (simCurrentUser && simIsHatched) {
+                simCurrentUser.petHatched = true;
+                simCurrentUser.petState = {
+                    petName: simPetName,
+                    petGender: simPetGender,
+                    coins: simCoins,
+                    hunger: simHunger,
+                    sleep: simSleep,
+                    happiness: simHappiness,
+                    level: simLevel,
+                    stage: simStage,
+                    equippedAccessory: simEquippedAccessory
+                };
+            }
+        }
+
+        function logoutSimUser() {
+            playBeep(300, 0.15);
+            saveCurrentUserState();
+
+            simCurrentUser = null;
+
+            // Hide everything else
+            document.getElementById("sim-screen-dashboard").classList.add("hidden");
+            document.getElementById("sim-screen-hatching").classList.add("hidden");
+            
+            // Show auth screeen
+            document.getElementById("sim-screen-auth").classList.remove("hidden");
+            
+            // Clean tabs
+            toggleSimAuthTab(false);
+        }
 
         // Sound effect (Web Audio API) for Retro feel on taps
         let audioCtx;
@@ -832,11 +1052,11 @@
             const btnH = document.getElementById("sim-btn-h");
             
             if (gender === 'Macho') {
-                btnM.className = "h-8 text-[10px] bg-sky-500/20 border-2 border-sky-450 text-sky-405 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
-                btnH.className = "h-8 text-[10px] bg-slate-800 border border-slate-700 text-slate-500 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
+                btnM.className = "h-7 text-[9px] bg-sky-500/25 border-2 border-sky-450 text-sky-400 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
+                btnH.className = "h-7 text-[9px] bg-slate-850 border border-slate-700 text-slate-500 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
             } else {
-                btnH.className = "h-8 text-[10px] bg-rose-500/20 border-2 border-rose-450 text-rose-405 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
-                btnM.className = "h-8 text-[10px] bg-slate-800 border border-slate-700 text-slate-500 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
+                btnH.className = "h-7 text-[9px] bg-rose-500/25 border-2 border-rose-450 text-rose-400 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
+                btnM.className = "h-7 text-[9px] bg-slate-850 border border-slate-700 text-slate-500 rounded-lg font-bold flex items-center justify-center gap-1 w-full";
             }
             document.getElementById("sim-hatch-error").classList.add("hidden");
         }
@@ -868,7 +1088,7 @@
             document.getElementById("sim-hatch-pill").classList.remove("hidden");
             document.getElementById("sim-btn-activate").innerText = "🔌 INCUBADORA CONECTADA";
             document.getElementById("sim-btn-activate").disabled = true;
-            document.getElementById("sim-btn-activate").className = "w-full h-9 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-xs rounded-xl cursor-default";
+            document.getElementById("sim-btn-activate").className = "w-full h-8 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-[10px] rounded-xl cursor-default";
             
             // Setup click event listening on the egg
             document.getElementById("sim-interactive-egg").onclick = tapSimEgg;
@@ -911,10 +1131,12 @@
             
             // Customize body colors slightly depending on gender choice for visual interest
             if (simPetGender === 'Macho') {
-                document.getElementById("sim-pet-avatar").className = "w-24 h-24 bg-sky-400 rounded-[45%_45%_50%_50%] border-4 border-sky-600 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300";
+                document.getElementById("sim-pet-avatar").className = "w-16 h-16 bg-sky-400 rounded-[45%_45%_50%_50%] border-4 border-sky-600 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300";
             } else {
-                document.getElementById("sim-pet-avatar").className = "w-24 h-24 bg-pink-400 rounded-[45%_45%_50%_50%] border-4 border-pink-600 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300";
+                document.getElementById("sim-pet-avatar").className = "w-16 h-16 bg-pink-400 rounded-[45%_45%_50%_50%] border-4 border-pink-600 shadow-xl relative flex flex-col items-center justify-center transition-all duration-300";
             }
+
+            saveCurrentUserState();
 
             showSimMessage(`🐣 ¡Felicidades! Ha nacido ${simPetName}, un tierno bebé! `);
             showSimFloat("🐣 ¡Nace!");
@@ -959,6 +1181,8 @@
                 showSimMessage(`✨ ¡EVOLUCIÓN! ${simPetName} creció a Nivel 2: Niño Fuego!`);
                 showSimFloat("📈 ENORME!");
             }
+
+            saveCurrentUserState();
         }
 
         // Screen interactions

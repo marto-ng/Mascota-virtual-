@@ -44,6 +44,7 @@ fun HomeScreen(
     viewModel: PetViewModel,
     modifier: Modifier = Modifier
 ) {
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val petState by viewModel.petState.collectAsStateWithLifecycle()
     val shopItems by viewModel.shopItems.collectAsStateWithLifecycle()
     val notifications by viewModel.notifications.collectAsStateWithLifecycle()
@@ -62,7 +63,14 @@ fun HomeScreen(
         )
     )
 
-    Scaffold(
+    if (currentUser == null) {
+        AuthScreen(
+            onLogin = { email, p, callback -> viewModel.login(email, p, callback) },
+            onRegister = { u, email, p, callback -> viewModel.register(u, email, p, callback) },
+            modifier = modifier
+        )
+    } else {
+        Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
             if (petState?.evolutionStage != "Huevo") {
@@ -175,7 +183,8 @@ fun HomeScreen(
                                 onRenameClick = {
                                     inputName = state.name
                                     showRenameDialog = true
-                                }
+                                },
+                                onLogout = { viewModel.logout() }
                             )
                             1 -> ShopView(
                                 state = state,
@@ -278,6 +287,7 @@ fun HomeScreen(
             }
         }
     }
+    }
 }
 
 // ==========================================
@@ -292,7 +302,8 @@ fun DashboardView(
     onFeedAction: () -> Unit,
     onSleepAction: () -> Unit,
     onCleanAction: () -> Unit,
-    onRenameClick: () -> Unit
+    onRenameClick: () -> Unit,
+    onLogout: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -301,6 +312,46 @@ fun DashboardView(
         horizontalAlignment = Alignment.CenterHorizontally,
         contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
     ) {
+        // Welcoming Profile and Logout Header Row
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp, start = 4.dp, end = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Cuidador: ",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = state.ownerUsername,
+                        color = Color(0xFFFFD54F),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+                TextButton(
+                    onClick = onLogout,
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF5252)),
+                    modifier = Modifier.minimumInteractiveComponentSize().testTag("logout_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ExitToApp,
+                        contentDescription = "Cerrar sesión",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color(0xFFFF5252)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Cerrar Sesión", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
         // Master top card: Levels and Stats Summary
         item {
             Card(

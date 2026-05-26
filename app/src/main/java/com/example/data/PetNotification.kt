@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "pet_notifications")
 data class PetNotification(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val ownerUsername: String = "guest",
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
